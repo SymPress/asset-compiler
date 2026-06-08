@@ -22,9 +22,6 @@
         "composer/composer": "^2.10",
         "phpunit/phpunit": "^11.5"
     },
-    "replace": {
-        "inpsyde/composer-assets-compiler": "self.version"
-    },
     "autoload": {
         "psr-4": {
             "SymPress\\AssetCompiler\\": "src/"

@@ -1,6 +1,6 @@
 # Migration
 
-This package can replace `inpsyde/composer-assets-compiler` in Composer projects that need a PHP 8.5-compatible asset compiler.
+This package can replace legacy Composer asset compiler integrations in projects that need a PHP 8.5-compatible build workflow.
 
 ## Composer Package
 
@@ -19,7 +19,7 @@ Remove the old package and require the new one:
 }
 ```
 
-The package declares a Composer `replace` entry for `inpsyde/composer-assets-compiler`, so packages that still require the old package can continue to resolve while they are migrated.
+Packages that still require a legacy asset compiler should be migrated to require `sympress/asset-compiler` directly.
 
 ## Configuration Keys
 
