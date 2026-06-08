@@ -18,7 +18,7 @@ final readonly class ConfigReader
 
     public function rootConfig(RootPackageInterface $package, string $rootPath): RootConfig
     {
-        $data = $this->modes->root($this->packageExtra($package));
+        $data = $this->modes->root($this->packageExtra($package, $rootPath));
         $precompiling = $this->envBool('COMPOSER_ASSET_COMPILER_PRECOMPILING', false);
 
         return new RootConfig(
@@ -76,8 +76,9 @@ final readonly class ConfigReader
         array $packageJson,
         ?array $rootOverride,
         bool $forceDefaults,
+        ?string $packagePath = null,
     ): ?BuildConfig {
-        $packageExtra = $this->packageExtra($package);
+        $packageExtra = $this->packageExtra($package, $packagePath);
         $hasPackageExtra = $packageExtra !== [];
         $base = [];
 
@@ -130,8 +131,14 @@ final readonly class ConfigReader
     /**
      * @return array<string, mixed>
      */
-    public function packageExtra(PackageInterface $package): array
+    public function packageExtra(PackageInterface $package, ?string $packagePath = null): array
     {
+        $fileConfig = $this->configFile($packagePath);
+
+        if ($fileConfig !== null) {
+            return $this->normalizeConfig($fileConfig);
+        }
+
         $extra = $package->getExtra();
         $config = $extra[RootConfig::EXTRA_KEY] ?? null;
 
@@ -144,6 +151,14 @@ final readonly class ConfigReader
             $config = $extra[RootConfig::LEGACY_EXTRA_KEY] ?? null;
         }
 
+        return $this->normalizeConfig($config);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function normalizeConfig(mixed $config): array
+    {
         if (is_string($config)) {
             return ['script' => $config];
         }
@@ -153,6 +168,44 @@ final readonly class ConfigReader
         }
 
         return is_array($config) ? $config : [];
+    }
+
+    private function configFile(?string $packagePath): mixed
+    {
+        if (!is_string($packagePath) || $packagePath === '') {
+            return null;
+        }
+
+        foreach (['asset-compiler.json', 'assets-compiler.json'] as $name) {
+            $file = rtrim($packagePath, '/') . '/' . $name;
+
+            if (!is_file($file) || !is_readable($file)) {
+                continue;
+            }
+
+            $contents = file_get_contents($file);
+
+            if (!is_string($contents) || trim($contents) === '') {
+                return [];
+            }
+
+            $decoded = json_decode($contents, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return [];
+            }
+
+            if (!is_array($decoded)) {
+                return $decoded;
+            }
+
+            return $decoded[RootConfig::EXTRA_KEY]
+                ?? (is_array($decoded['sympress'] ?? null)
+                    ? ($decoded['sympress'][RootConfig::NESTED_EXTRA_KEY] ?? $decoded)
+                    : $decoded);
+        }
+
+        return null;
     }
 
     /**

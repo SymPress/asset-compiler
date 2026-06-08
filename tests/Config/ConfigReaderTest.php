@@ -110,4 +110,29 @@ final class ConfigReaderTest extends TestCase
         self::assertSame(['build -- admin'], $config->scripts);
         self::assertTrue($config->isolatedCache);
     }
+
+    public function testPackageConfigFileOverridesComposerExtra(): void
+    {
+        $path = sys_get_temp_dir() . '/sympress_asset_compiler_config_' . bin2hex(random_bytes(8));
+        mkdir($path);
+
+        try {
+            file_put_contents($path . '/asset-compiler.json', json_encode(['script' => 'from-file'], JSON_THROW_ON_ERROR));
+
+            $package = new Package('acme/package', '1.0.0.0', '1.0.0');
+            $package->setExtra([
+                RootConfig::EXTRA_KEY => [
+                    'script' => 'from-composer',
+                ],
+            ]);
+
+            self::assertSame(
+                ['script' => 'from-file'],
+                (new ConfigReader(null, true))->packageExtra($package, $path),
+            );
+        } finally {
+            unlink($path . '/asset-compiler.json');
+            rmdir($path);
+        }
+    }
 }

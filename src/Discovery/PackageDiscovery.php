@@ -65,6 +65,7 @@ final readonly class PackageDiscovery
                 $packageJson,
                 $selection?->override,
                 $selection?->forceDefaults ?? false,
+                $path,
             );
 
             if (!$build instanceof \SymPress\AssetCompiler\Config\BuildConfig) {
@@ -104,6 +105,7 @@ final readonly class PackageDiscovery
             $packageJson,
             null,
             false,
+            $this->rootConfig->rootPath,
         );
 
         if (!$build instanceof \SymPress\AssetCompiler\Config\BuildConfig) {
@@ -172,7 +174,8 @@ final readonly class PackageDiscovery
             return $packageJson !== [];
         }
 
-        $packageExtra = $this->configReader->packageExtra($package);
+        $path = $this->pathForPackage($package);
+        $packageExtra = $this->configReader->packageExtra($package, $path);
 
         if ($packageExtra !== []) {
             return $packageJson !== [];
