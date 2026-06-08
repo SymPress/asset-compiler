@@ -11,6 +11,10 @@ use Symfony\Component\Filesystem\Filesystem;
 use SymPress\AssetCompiler\Config\ConfigReader;
 use SymPress\AssetCompiler\Discovery\PackageDiscovery;
 use SymPress\AssetCompiler\PackageManager\PackageManagerResolver;
+use SymPress\AssetCompiler\Precompiled\ArchiveExtractor;
+use SymPress\AssetCompiler\Precompiled\Downloader;
+use SymPress\AssetCompiler\Precompiled\GitHubAssetLocator;
+use SymPress\AssetCompiler\Precompiled\PrecompiledAssetInstaller;
 
 final class CompilerFactory
 {
@@ -24,6 +28,8 @@ final class CompilerFactory
         $rootPath = self::rootPath($composer);
         $reader = new ConfigReader($mode ?? self::modeFromEnvironment(), $devMode);
         $rootConfig = $reader->rootConfig($composer->getPackage(), $rootPath);
+        $downloader = new Downloader();
+        $github = new GitHubAssetLocator($downloader);
 
         return new AssetCompiler(
             $rootConfig,
@@ -32,6 +38,7 @@ final class CompilerFactory
             new LockRepository($filesystem, $io),
             new PackageManagerResolver(),
             new TaskRunner($io),
+            new PrecompiledAssetInstaller($downloader, new ArchiveExtractor($filesystem), $github, $io),
             $io,
         );
     }

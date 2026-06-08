@@ -9,6 +9,7 @@ use SymPress\AssetCompiler\Config\RootConfig;
 use SymPress\AssetCompiler\Discovery\PackageDiscovery;
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
 use SymPress\AssetCompiler\PackageManager\PackageManagerResolver;
+use SymPress\AssetCompiler\Precompiled\PrecompiledAssetInstaller;
 
 final readonly class AssetCompiler
 {
@@ -19,6 +20,7 @@ final readonly class AssetCompiler
         private LockRepository $locks,
         private PackageManagerResolver $packageManagers,
         private TaskRunner $runner,
+        private PrecompiledAssetInstaller $precompiledAssets,
         private IOInterface $io,
     ) {
     }
@@ -41,6 +43,7 @@ final readonly class AssetCompiler
         $workspaces = $this->filteredPackages($packagePatterns);
         $tasks = [];
         $skipped = 0;
+        $precompiled = 0;
 
         foreach ($workspaces as $workspace) {
             $hash = $this->hasher->hash($workspace);
@@ -53,6 +56,12 @@ final readonly class AssetCompiler
                     IOInterface::VERBOSE,
                 );
 
+                continue;
+            }
+
+            if (!$dryRun && $workspace->build->precompiledAssets !== [] && $this->precompiledAssets->install($workspace)) {
+                $this->locks->write($workspace, $hash);
+                ++$precompiled;
                 continue;
             }
 
@@ -106,7 +115,7 @@ final readonly class AssetCompiler
 
         return new CompilationResult(
             total: count($workspaces),
-            successfulTasks: count($result->successfulWorkspaces),
+            successfulTasks: $precompiled + count($result->successfulWorkspaces),
             skipped: $skipped,
             failed: $result->failed,
         );

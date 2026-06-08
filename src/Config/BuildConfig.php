@@ -27,6 +27,6 @@ final readonly class BuildConfig
 
     public function runnable(): bool
     {
-        return $this->scripts !== [] || $this->dependencyMode !== DependencyMode::None;
+        return $this->scripts !== [] || $this->dependencyMode !== DependencyMode::None || $this->precompiledAssets !== [];
     }
 }
