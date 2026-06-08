@@ -59,13 +59,16 @@ final readonly class AssetCompiler
                 $this->explainWorkspace($workspace, $manager, $lock);
             }
 
-            if (!$dryRun && $lock->fresh) {
+            if ($lock->fresh) {
                 ++$skipped;
-                $this->io->write(
-                    sprintf('<comment>Skipping %s</comment> assets are already current.', $workspace->name),
-                    true,
-                    IOInterface::VERBOSE,
-                );
+
+                if (!$dryRun) {
+                    $this->io->write(
+                        sprintf('<comment>Skipping %s</comment> assets are already current.', $workspace->name),
+                        true,
+                        IOInterface::VERBOSE,
+                    );
+                }
 
                 continue;
             }
