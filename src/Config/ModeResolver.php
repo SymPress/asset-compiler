@@ -18,9 +18,9 @@ final readonly class ModeResolver
      */
     public function root(array $data): array
     {
-        $modeConfig = $this->modeConfig($data);
+        [$found, $modeConfig] = $this->selectedMode($data);
 
-        if ($modeConfig === null) {
+        if (!$found || !is_array($modeConfig)) {
             unset($data['$mode'], $data['env']);
 
             return $data;
@@ -28,7 +28,10 @@ final readonly class ModeResolver
 
         unset($data['$mode'], $data['env']);
 
-        return array_replace_recursive($data, $modeConfig);
+        /** @var array<string, mixed> $resolved */
+        $resolved = array_replace_recursive($data, self::stringKeyedArray($modeConfig));
+
+        return $resolved;
     }
 
     public function property(mixed $value): mixed
@@ -37,9 +40,9 @@ final readonly class ModeResolver
             return $value;
         }
 
-        $modeConfig = $this->modeConfig($value);
+        [$found, $modeConfig] = $this->selectedMode($value);
 
-        if ($modeConfig === null) {
+        if (!$found) {
             unset($value['$mode'], $value['env']);
 
             return $value;
@@ -49,15 +52,15 @@ final readonly class ModeResolver
     }
 
     /**
-     * @param array<string, mixed> $data
-     * @return array<string, mixed>|null
+     * @param array<array-key, mixed> $data
+     * @return array{bool, mixed}
      */
-    private function modeConfig(array $data): ?array
+    private function selectedMode(array $data): array
     {
         $modes = $data['$mode'] ?? $data['env'] ?? null;
 
         if (!is_array($modes)) {
-            return null;
+            return [false, null];
         }
 
         $candidates = array_filter(
@@ -66,17 +69,32 @@ final readonly class ModeResolver
                 $this->devMode ? null : '$default-no-dev',
                 '$default',
             ],
-            static fn (?string $mode): bool => is_string($mode) && $mode !== '',
+            static fn(?string $mode): bool => is_string($mode) && $mode !== '',
         );
 
         foreach ($candidates as $candidate) {
-            $selected = $modes[$candidate] ?? null;
-
-            if (is_array($selected)) {
-                return $selected;
+            if (isset($modes[$candidate])) {
+                return [true, $modes[$candidate]];
             }
         }
 
-        return null;
+        return [false, null];
+    }
+
+    /**
+     * @param array<array-key, mixed> $value
+     * @return array<string, mixed>
+     */
+    private static function stringKeyedArray(array $value): array
+    {
+        $result = [];
+
+        foreach ($value as $key => $item) {
+            if (is_string($key)) {
+                $result[$key] = $item;
+            }
+        }
+
+        return $result;
     }
 }

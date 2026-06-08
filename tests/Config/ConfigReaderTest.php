@@ -6,6 +6,7 @@ namespace SymPress\AssetCompiler\Tests\Config;
 
 use Composer\Package\Package;
 use Composer\Package\RootPackage;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use SymPress\AssetCompiler\Config\ConfigReader;
 use SymPress\AssetCompiler\Config\DependencyMode;
@@ -181,5 +182,54 @@ final class ConfigReaderTest extends TestCase
         self::assertSame('archive', $config->precompiledAssets[0]->adapter);
         self::assertSame('https://example.test/assets-${version}.zip', $config->precompiledAssets[0]->source);
         self::assertFalse($config->precompiledAssets[0]->config['clean-target']);
+    }
+
+    public function testRejectsUnsupportedRootPackageManager(): void
+    {
+        $package = new RootPackage('acme/root', '1.0.0.0', '1.0.0');
+        $package->setExtra([
+            RootConfig::EXTRA_KEY => [
+                'package-manager' => 'yar',
+            ],
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unsupported asset compiler root package-manager');
+
+        (new ConfigReader(null, true))->rootConfig($package, '/project');
+    }
+
+    public function testRejectsUnsupportedPrecompiledAdapter(): void
+    {
+        $root = new RootConfig(
+            rootPath: '/project',
+            autoRun: true,
+            autoDiscover: true,
+            stopOnFailure: true,
+            maxProcesses: 4,
+            processPoll: 100000,
+            isolatedCache: false,
+            wipeNodeModules: false,
+            timeoutIncrement: 0,
+            packageManager: null,
+            defaults: [],
+            packages: [],
+            packageTypes: ['wordpress-plugin'],
+            env: [],
+        );
+        $package = new Package('acme/package', '1.0.0.0', '1.0.0');
+        $package->setExtra([
+            RootConfig::EXTRA_KEY => [
+                'precompiled' => [
+                    'adapter' => 'tar',
+                    'source' => 'assets.tar',
+                ],
+            ],
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unsupported precompiled asset adapter');
+
+        (new ConfigReader(null, true))->buildConfig($package, $root, ['scripts' => ['build' => 'webpack']], null, false);
     }
 }

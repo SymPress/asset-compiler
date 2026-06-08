@@ -15,6 +15,7 @@ final readonly class PrecompiledAssetConfig
         public string $target,
         public array $config = [],
         public ?string $stability = null,
+        public ?string $checksum = null,
     ) {
     }
 }

@@ -6,9 +6,13 @@ namespace SymPress\AssetCompiler\Discovery;
 
 use Composer\Composer;
 use Composer\Installer\InstallationManager;
+use Composer\Package\Link;
 use Composer\Package\PackageInterface;
 use Composer\Package\RootPackageInterface;
 use Composer\Repository\RepositoryInterface;
+use JsonException;
+use RuntimeException;
+use SymPress\AssetCompiler\Config\BuildConfig;
 use SymPress\AssetCompiler\Config\ConfigReader;
 use SymPress\AssetCompiler\Config\RootConfig;
 
@@ -64,11 +68,11 @@ final readonly class PackageDiscovery
                 $this->rootConfig,
                 $packageJson,
                 $selection?->override,
-                $selection?->forceDefaults ?? false,
+                $selection instanceof RootPackageSelection && $selection->forceDefaults,
                 $path,
             );
 
-            if (!$build instanceof \SymPress\AssetCompiler\Config\BuildConfig) {
+            if (!$build instanceof BuildConfig) {
                 continue;
             }
 
@@ -88,10 +92,10 @@ final readonly class PackageDiscovery
 
         usort(
             $workspaces,
-            static fn (PackageWorkspace $left, PackageWorkspace $right): int => strcasecmp($left->name, $right->name),
+            static fn(PackageWorkspace $left, PackageWorkspace $right): int => strcasecmp($left->name, $right->name),
         );
 
-        return array_values($workspaces);
+        return $workspaces;
     }
 
     private function workspaceForRootPackage(RootPackageInterface $package): ?PackageWorkspace
@@ -111,7 +115,7 @@ final readonly class PackageDiscovery
             $this->rootConfig->rootPath,
         );
 
-        if (!$build instanceof \SymPress\AssetCompiler\Config\BuildConfig) {
+        if (!$build instanceof BuildConfig) {
             return null;
         }
 
@@ -147,18 +151,14 @@ final readonly class PackageDiscovery
 
     private function version(PackageInterface $package): string
     {
-        return method_exists($package, 'getPrettyVersion') ? (string) $package->getPrettyVersion() : $package->getVersion();
+        return $package->getPrettyVersion();
     }
 
     private function reference(PackageInterface $package): string
     {
-        foreach (['getSourceReference', 'getDistReference'] as $method) {
-            if (method_exists($package, $method)) {
-                $reference = $package->{$method}();
-
-                if (is_string($reference) && $reference !== '') {
-                    return $reference;
-                }
+        foreach ([$package->getSourceReference(), $package->getDistReference()] as $reference) {
+            if (is_string($reference) && $reference !== '') {
+                return $reference;
             }
         }
 
@@ -167,7 +167,7 @@ final readonly class PackageDiscovery
 
     private function stability(PackageInterface $package): string
     {
-        return method_exists($package, 'getStability') ? (string) $package->getStability() : 'stable';
+        return $package->getStability();
     }
 
     /**
@@ -187,11 +187,18 @@ final readonly class PackageDiscovery
             return [];
         }
 
-        $decoded = json_decode($contents, true);
+        try {
+            $decoded = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            return [];
+        }
 
-        return is_array($decoded) ? $decoded : [];
+        return is_array($decoded) ? self::stringKeyedArray($decoded) : [];
     }
 
+    /**
+     * @param array<string, mixed> $packageJson
+     */
     private function shouldInspect(
         PackageInterface $package,
         array $packageJson,
@@ -226,7 +233,7 @@ final readonly class PackageDiscovery
     private function selection(string $packageName): ?RootPackageSelection
     {
         foreach ($this->rootConfig->packages as $pattern => $raw) {
-            if (!is_string($pattern) || !$this->matches($packageName, $pattern)) {
+            if (!$this->matches($packageName, $pattern)) {
                 continue;
             }
 
@@ -258,7 +265,7 @@ final readonly class PackageDiscovery
             return new RootPackageSelection(['script' => $raw], false, false, true, $pattern);
         }
 
-        return new RootPackageSelection(is_array($raw) ? $raw : null, false, false, true, $pattern);
+        return new RootPackageSelection(is_array($raw) ? self::stringKeyedArray($raw) : null, false, false, true, $pattern);
     }
 
     /**
@@ -273,7 +280,7 @@ final readonly class PackageDiscovery
         $missing = [];
 
         foreach ($this->rootConfig->packages as $pattern => $raw) {
-            if (!is_string($pattern) || str_contains($pattern, '*')) {
+            if (str_contains($pattern, '*')) {
                 continue;
             }
 
@@ -290,11 +297,14 @@ final readonly class PackageDiscovery
             return;
         }
 
-        throw new \RuntimeException(
+        throw new RuntimeException(
             sprintf('Asset compiler package config references missing Composer package(s): %s.', implode(', ', $missing)),
         );
     }
 
+    /**
+     * @param array<string, mixed> $packageJson
+     */
     private function hasBuildScript(array $packageJson): bool
     {
         $scripts = $packageJson['scripts'] ?? null;
@@ -304,13 +314,10 @@ final readonly class PackageDiscovery
 
     private function requiresAssetsPackage(PackageInterface $package): bool
     {
-        foreach ($package->getRequires() as $link) {
-            if ($link->getTarget() === 'sympress/assets') {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any(
+            $package->getRequires(),
+            static fn(Link $link): bool => $link->getTarget() === 'sympress/assets',
+        );
     }
 
     private function isProjectPackage(PackageInterface $package): bool
@@ -341,5 +348,22 @@ final readonly class PackageDiscovery
         $path = str_replace('\\', '/', $path);
 
         return rtrim(preg_replace('~/+~', '/', $path) ?: $path, '/');
+    }
+
+    /**
+     * @param array<array-key, mixed> $value
+     * @return array<string, mixed>
+     */
+    private static function stringKeyedArray(array $value): array
+    {
+        $result = [];
+
+        foreach ($value as $key => $item) {
+            if (is_string($key)) {
+                $result[$key] = $item;
+            }
+        }
+
+        return $result;
     }
 }

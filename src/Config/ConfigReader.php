@@ -6,9 +6,24 @@ namespace SymPress\AssetCompiler\Config;
 
 use Composer\Package\PackageInterface;
 use Composer\Package\RootPackageInterface;
+use InvalidArgumentException;
+use JsonException;
+use SymPress\AssetCompiler\PackageManager\PackageManager;
 
 final readonly class ConfigReader
 {
+    /**
+     * @var list<string>
+     */
+    private const SUPPORTED_PRECOMPILED_ADAPTERS = [
+        'archive',
+        'zip',
+        'github-release',
+        'gh-release-zip',
+        'github-artifact',
+        'gh-action-artifact',
+    ];
+
     private ModeResolver $modes;
 
     public function __construct(?string $mode, bool $devMode)
@@ -55,6 +70,7 @@ final readonly class ConfigReader
             packageManager: $this->packageManager(
                 $this->envString('COMPOSER_ASSET_COMPILER_PACKAGE_MANAGER')
                 ?? $this->value($data, 'package-manager'),
+                'root package-manager',
             ),
             defaults: $this->array($this->value($data, 'defaults')),
             packages: $this->array($this->value($data, 'packages')),
@@ -80,6 +96,7 @@ final readonly class ConfigReader
     ): ?BuildConfig {
         $packageExtra = $this->packageExtra($package, $packagePath);
         $hasPackageExtra = $packageExtra !== [];
+        /** @var array<string, mixed> $base */
         $base = [];
 
         if ($forceDefaults || !$hasPackageExtra) {
@@ -94,7 +111,7 @@ final readonly class ConfigReader
             $base = array_replace_recursive($base, $rootOverride);
         }
 
-        $base = $this->modes->root($base);
+        $base = $this->modes->root(self::stringKeyedArray($base));
 
         if ($base === [] && !$this->hasBuildScript($packageJson)) {
             return null;
@@ -114,7 +131,7 @@ final readonly class ConfigReader
         $config = new BuildConfig(
             scripts: $scripts,
             dependencyMode: $dependencyMode,
-            packageManager: $this->packageManager($this->value($base, 'package-manager')),
+            packageManager: $this->packageManager($this->value($base, 'package-manager'), sprintf('%s package-manager', $package->getName())),
             packageManagerPreference: $root->packageManager,
             isolatedCache: $this->bool($this->value($base, 'isolated-cache'), $root->isolatedCache),
             env: $env,
@@ -170,7 +187,7 @@ final readonly class ConfigReader
             return ['script' => $config];
         }
 
-        return is_array($config) ? $config : [];
+        return is_array($config) ? self::stringKeyedArray($config) : [];
     }
 
     private function configFile(?string $packagePath): mixed
@@ -192,10 +209,10 @@ final readonly class ConfigReader
                 return [];
             }
 
-            $decoded = json_decode($contents, true);
-
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                return [];
+            try {
+                $decoded = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+            } catch (JsonException) {
+                throw new InvalidArgumentException(sprintf('Asset compiler config file contains invalid JSON: %s.', $file));
             }
 
             if (!is_array($decoded)) {
@@ -223,6 +240,7 @@ final readonly class ConfigReader
 
     /**
      * @param array<string, mixed> $packageJson
+     * @param array<string, string|false> $env
      * @return list<string>
      */
     private function scripts(mixed $raw, array $packageJson, array $env): array
@@ -265,11 +283,22 @@ final readonly class ConfigReader
         );
     }
 
-    private function packageManager(mixed $value): ?string
+    private function packageManager(mixed $value, string $scope): ?string
     {
         $value = $this->modes->property($value);
 
-        return is_string($value) && trim($value) !== '' ? strtolower(trim($value)) : null;
+        if (!is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        $value = strtolower(trim($value));
+
+        return match ($value) {
+            PackageManager::NPM, PackageManager::YARN, PackageManager::PNPM => $value,
+            default => throw new InvalidArgumentException(
+                sprintf('Unsupported asset compiler %s "%s". Supported values are npm, yarn, and pnpm.', $scope, $value),
+            ),
+        };
     }
 
     /**
@@ -305,7 +334,7 @@ final readonly class ConfigReader
     {
         $value = $this->modes->property($value);
 
-        return is_array($value) ? $value : [];
+        return is_array($value) ? self::stringKeyedArray($value) : [];
     }
 
     /**
@@ -405,15 +434,54 @@ final readonly class ConfigReader
                 continue;
             }
 
+            $adapter = strtolower(trim($adapter));
+
+            if (!in_array($adapter, self::SUPPORTED_PRECOMPILED_ADAPTERS, true)) {
+                throw new InvalidArgumentException(sprintf('Unsupported precompiled asset adapter "%s".', $adapter));
+            }
+
             $configs[] = new PrecompiledAssetConfig(
-                adapter: strtolower(trim($adapter)),
+                adapter: $adapter,
                 source: trim($source),
                 target: is_string($target) && trim($target) !== '' ? trim($target) : 'assets',
-                config: is_array($item['config'] ?? null) ? $item['config'] : [],
+                config: is_array($item['config'] ?? null) ? self::stringKeyedArray($item['config']) : [],
                 stability: is_string($item['stability'] ?? null) ? strtolower(trim($item['stability'])) : null,
+                checksum: $this->checksum($item),
             );
         }
 
         return $configs;
+    }
+
+    /**
+     * @param array<array-key, mixed> $item
+     */
+    private function checksum(array $item): ?string
+    {
+        $config = is_array($item['config'] ?? null) ? $item['config'] : [];
+        $checksum = $item['checksum'] ?? $item['sha256'] ?? $config['checksum'] ?? $config['sha256'] ?? null;
+
+        if (!is_string($checksum) || trim($checksum) === '') {
+            return null;
+        }
+
+        return trim($checksum);
+    }
+
+    /**
+     * @param array<array-key, mixed> $value
+     * @return array<string, mixed>
+     */
+    private static function stringKeyedArray(array $value): array
+    {
+        $result = [];
+
+        foreach ($value as $key => $item) {
+            if (is_string($key)) {
+                $result[$key] = $item;
+            }
+        }
+
+        return $result;
     }
 }
