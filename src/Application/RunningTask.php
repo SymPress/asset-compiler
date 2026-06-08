@@ -12,6 +12,8 @@ final class RunningTask
 
     private int $step = 0;
 
+    private float $startedAt = 0.0;
+
     public function __construct(public readonly BuildTask $task)
     {
     }
@@ -27,5 +29,17 @@ final class RunningTask
         $this->process = null;
 
         return isset($this->task->steps[$this->step]);
+    }
+
+    public function markStarted(): void
+    {
+        if ($this->startedAt === 0.0) {
+            $this->startedAt = microtime(true);
+        }
+    }
+
+    public function elapsed(): float
+    {
+        return $this->startedAt > 0.0 ? microtime(true) - $this->startedAt : 0.0;
     }
 }

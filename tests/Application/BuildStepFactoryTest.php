@@ -31,9 +31,11 @@ final class BuildStepFactoryTest extends TestCase
 
         self::assertCount(2, $steps);
         self::assertSame('install dependencies', $steps[0]->label);
+        self::assertFalse($steps[0]->parallel);
         self::assertSame(['npm', 'install', '--no-package-lock'], $steps[0]->command);
         self::assertSame(['APP_ENV' => 'test'], $steps[0]->environment);
         self::assertSame('run build', $steps[1]->label);
+        self::assertTrue($steps[1]->parallel);
         self::assertSame(['npm', 'run', 'build'], $steps[1]->command);
     }
 

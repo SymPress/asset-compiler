@@ -23,17 +23,31 @@ final readonly class TaskRunner
             return new RunnerResult([], [], 0);
         }
 
-        if ($config->maxProcesses <= 1 || count($tasks) === 1) {
-            return $this->runSequentially($tasks, $config);
+        $prepared = $this->runSequentialSteps($tasks, $config);
+
+        if ($prepared->failed > 0 && $config->stopOnFailure) {
+            return new RunnerResult($prepared->successfulWorkspaces, $prepared->hashes, $prepared->failed);
         }
 
-        return $this->runInPool($tasks, $config);
+        if ($prepared->parallelTasks === []) {
+            return new RunnerResult($prepared->successfulWorkspaces, $prepared->hashes, $prepared->failed);
+        }
+
+        $parallel = $config->maxProcesses <= 1 || count($prepared->parallelTasks) === 1
+            ? $this->runScriptTasksSequentially($prepared->parallelTasks, $config)
+            : $this->runInPool($prepared->parallelTasks, $config);
+
+        return new RunnerResult(
+            array_merge($prepared->successfulWorkspaces, $parallel->successfulWorkspaces),
+            array_replace($prepared->hashes, $parallel->hashes),
+            $prepared->failed + $parallel->failed,
+        );
     }
 
     /**
      * @param list<BuildTask> $tasks
      */
-    private function runSequentially(array $tasks, RootConfig $config): RunnerResult
+    private function runScriptTasksSequentially(array $tasks, RootConfig $config): RunnerResult
     {
         $successful = [];
         $hashes = [];
@@ -60,30 +74,89 @@ final readonly class TaskRunner
 
     private function runTask(BuildTask $task): bool
     {
-        $this->io->write(sprintf('<info>Compiling assets for %s</info>', $task->workspace->name));
+        $started = microtime(true);
+        $this->io->write(sprintf('<info>%s</info> run build steps', $task->workspace->name));
 
         foreach ($task->steps as $step) {
-            $this->io->write(
-                sprintf('  <comment>%s:</comment> %s', $step->label, $step->displayCommand()),
-                true,
-                IOInterface::VERBOSE,
-            );
-
-            $process = new Process($step->command, $step->workingDirectory, $step->environment, null, $step->timeout);
-            $process->run($this->output(...));
-
-            if (!$process->isSuccessful()) {
-                $this->io->writeError(
-                    sprintf(
-                        '<error>Asset command failed for %s:</error> %s',
-                        $task->workspace->name,
-                        $step->displayCommand(),
-                    ),
-                );
-
+            if (!$this->runStep($task->workspace->name, $step)) {
                 return false;
             }
         }
+
+        $this->io->write(sprintf('<info>%s</info> completed in %.2fs.', $task->workspace->name, microtime(true) - $started));
+
+        return true;
+    }
+
+    /**
+     * @param list<BuildTask> $tasks
+     */
+    private function runSequentialSteps(array $tasks, RootConfig $config): PreparedTasks
+    {
+        $successful = [];
+        $hashes = [];
+        $parallelTasks = [];
+        $failed = 0;
+
+        foreach ($tasks as $task) {
+            $sequential = array_values(array_filter($task->steps, static fn (BuildStep $step): bool => !$step->parallel));
+            $parallel = array_values(array_filter($task->steps, static fn (BuildStep $step): bool => $step->parallel));
+
+            foreach ($sequential as $step) {
+                $this->io->write(sprintf('<info>%s</info> %s', $task->workspace->name, $step->label));
+
+                if (!$this->runStep($task->workspace->name, $step)) {
+                    ++$failed;
+
+                    if ($config->stopOnFailure) {
+                        return new PreparedTasks($successful, $hashes, $parallelTasks, $failed);
+                    }
+
+                    continue 2;
+                }
+            }
+
+            if ($parallel === []) {
+                $successful[] = $task->workspace;
+                $hashes[$task->workspace->name] = $task->hash;
+                continue;
+            }
+
+            $parallelTasks[] = new BuildTask($task->workspace, $task->hash, $parallel);
+        }
+
+        return new PreparedTasks($successful, $hashes, $parallelTasks, $failed);
+    }
+
+    private function runStep(string $packageName, BuildStep $step): bool
+    {
+        $started = microtime(true);
+        $this->io->write(
+            sprintf('  <comment>%s:</comment> %s', $step->label, $step->displayCommand()),
+            true,
+            IOInterface::VERBOSE,
+        );
+
+        $process = new Process($step->command, $step->workingDirectory, $step->environment, null, $step->timeout);
+        $process->run($this->output(...));
+
+        if (!$process->isSuccessful()) {
+            $this->io->writeError(
+                sprintf(
+                    '<error>Asset command failed for %s:</error> %s',
+                    $packageName,
+                    $step->displayCommand(),
+                ),
+            );
+
+            return false;
+        }
+
+        $this->io->write(
+            sprintf('  %s finished in %.2fs.', $step->label, microtime(true) - $started),
+            true,
+            IOInterface::VERBOSE,
+        );
 
         return true;
     }
@@ -138,6 +211,9 @@ final readonly class TaskRunner
                 unset($running[$id]);
                 $successful[] = $task->task->workspace;
                 $hashes[$task->task->workspace->name] = $task->task->hash;
+                $this->io->write(
+                    sprintf('<info>%s</info> completed in %.2fs.', $task->task->workspace->name, $task->elapsed()),
+                );
             }
 
             usleep($config->processPoll);
@@ -149,6 +225,7 @@ final readonly class TaskRunner
     private function startTask(RunningTask $task): void
     {
         $step = $task->currentStep();
+        $task->markStarted();
         $this->io->write(sprintf('<info>%s</info> %s', $task->task->workspace->name, $step->label));
         $this->io->write(
             sprintf('  %s', $step->displayCommand()),

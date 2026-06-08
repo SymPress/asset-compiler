@@ -16,6 +16,7 @@ final readonly class BuildStep
         public string $workingDirectory,
         public int $timeout,
         public array $environment = [],
+        public bool $parallel = true,
     ) {
     }
 

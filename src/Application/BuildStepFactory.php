@@ -30,6 +30,7 @@ final class BuildStepFactory
                 $workspace->path,
                 $config->timeout,
                 $config->env,
+                false,
             );
         }
 
@@ -40,6 +41,7 @@ final class BuildStepFactory
                 $workspace->path,
                 $config->timeout,
                 $config->env,
+                true,
             );
         }
 
