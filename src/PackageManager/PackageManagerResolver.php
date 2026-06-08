@@ -11,14 +11,20 @@ final class PackageManagerResolver
 {
     private ExecutableFinder $executables;
 
+    private ?\Closure $availability;
+
     /**
      * @var array<string, bool>
      */
     private array $available = [];
 
-    public function __construct()
+    /**
+     * @param null|callable(string): bool $availability
+     */
+    public function __construct(?callable $availability = null)
     {
         $this->executables = new ExecutableFinder();
+        $this->availability = $availability !== null ? \Closure::fromCallable($availability) : null;
     }
 
     public function resolve(PackageWorkspace $workspace): PackageManager
@@ -30,6 +36,7 @@ final class PackageManagerResolver
                         $workspace->build->packageManager,
                         $this->fromPackageJson($workspace),
                         $this->fromLockFiles($workspace),
+                        $workspace->build->packageManagerFallback,
                         PackageManager::NPM,
                     ],
                     static fn (?string $name): bool => is_string($name) && $name !== '',
@@ -67,20 +74,23 @@ final class PackageManagerResolver
     private function fromLockFiles(PackageWorkspace $workspace): ?string
     {
         $path = rtrim($workspace->path, '/');
+        $managers = [];
 
         if (is_file($path . '/pnpm-lock.yaml')) {
-            return PackageManager::PNPM;
+            $managers[] = PackageManager::PNPM;
         }
 
-        if (is_file($path . '/yarn.lock') && !is_file($path . '/package-lock.json')) {
-            return PackageManager::YARN;
+        if (is_file($path . '/yarn.lock')) {
+            $managers[] = PackageManager::YARN;
         }
 
         if (is_file($path . '/package-lock.json') || is_file($path . '/npm-shrinkwrap.json')) {
-            return PackageManager::NPM;
+            $managers[] = PackageManager::NPM;
         }
 
-        return null;
+        $managers = array_values(array_unique($managers));
+
+        return count($managers) === 1 ? $managers[0] : null;
     }
 
     private function normalize(string $name): ?string
@@ -99,7 +109,9 @@ final class PackageManagerResolver
             return $this->available[$name];
         }
 
-        $this->available[$name] = is_string($this->executables->find($name));
+        $this->available[$name] = $this->availability !== null
+            ? (bool) ($this->availability)($name)
+            : is_string($this->executables->find($name));
 
         return $this->available[$name];
     }

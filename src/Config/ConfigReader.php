@@ -84,7 +84,8 @@ final readonly class ConfigReader
         $config = new BuildConfig(
             scripts: $scripts,
             dependencyMode: $dependencyMode,
-            packageManager: $this->packageManager($this->value($base, 'package-manager')) ?? $root->packageManager,
+            packageManager: $this->packageManager($this->value($base, 'package-manager')),
+            packageManagerFallback: $root->packageManager,
             env: array_replace($root->env, $this->env($this->value($base, 'default-env'))),
             sourcePaths: $this->stringList(
                 $this->value($base, 'source-paths') ?? $this->value($base, 'src-paths'),

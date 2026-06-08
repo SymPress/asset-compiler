@@ -74,7 +74,7 @@ final class PackageManagerTest extends TestCase
             name: 'vendor/package',
             type: 'wordpress-plugin',
             path: $this->workspacePath,
-            build: new BuildConfig([], DependencyMode::None, null, [], [], 120),
+            build: new BuildConfig([], DependencyMode::None, null, null, [], [], 120),
             packageJson: [],
         );
     }

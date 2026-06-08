@@ -60,7 +60,8 @@ final class ConfigReaderTest extends TestCase
         self::assertNotNull($config);
         self::assertSame(['build'], $config->scripts);
         self::assertSame(DependencyMode::Install, $config->dependencyMode);
-        self::assertSame('yarn', $config->packageManager);
+        self::assertNull($config->packageManager);
+        self::assertSame('yarn', $config->packageManagerFallback);
         self::assertSame([], $config->sourcePaths);
     }
 }
