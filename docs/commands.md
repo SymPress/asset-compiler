@@ -19,12 +19,14 @@ Options:
 | `--packages <patterns>` | Only process comma-separated package names or fnmatch patterns. |
 | `--no-install` | Skip dependency installation and run only build scripts. |
 | `--dry-run` | Print the planned package-manager commands without executing them. |
+| `--explain` | Print package-manager resolution details and skip reasons. |
 
 Examples:
 
 ```bash
 composer compile-assets
 composer compile-assets --dry-run
+composer compile-assets --dry-run --explain
 composer compile-assets --packages 'sympress/*'
 composer compile-assets --ignore-lock='*'
 composer compile-assets --ignore-lock='acme/theme-*'
@@ -32,7 +34,9 @@ composer compile-assets --mode production --no-dev
 composer compile-assets --no-install
 ```
 
-The command summary reports discovered packages, packages that were built or planned, packages already current through build locks, and failures. The same summary is printed when `auto-run` is enabled for Composer install or update events.
+The command summary reports discovered packages, packages that were built, restored, or planned, packages already current through build locks, and failures. The same summary is printed when `auto-run` is enabled for Composer install or update events.
+
+Dependency installation and dependency updates are executed in a controlled sequential phase. Build scripts then run through the bounded process pool configured by `max-processes`.
 
 ## `assets-hash`
 
@@ -93,3 +97,11 @@ Script commands support arguments by separating the script name from arguments w
   "script": "build -- --mode production"
 }
 ```
+
+When `isolated-cache` is enabled, install/update commands receive package-specific cache flags:
+
+| Manager | Cache flag |
+| --- | --- |
+| npm | `--cache <path>` |
+| yarn | `--cache-folder <path>` |
+| pnpm | `--store-dir <path>` |

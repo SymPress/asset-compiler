@@ -25,6 +25,9 @@ The flat key `extra.sympress.asset-compiler` is also supported. The legacy key `
 | `stop-on-failure` | boolean | `true` | Stop the run after the first failing package. |
 | `max-processes` | integer | `4` | Number of package builds to run in parallel. Values are clamped to `1..8`. |
 | `process-poll` | integer | `100000` | Poll interval in microseconds for parallel process execution. |
+| `isolated-cache` | boolean | `false` | Use package-specific npm/yarn/pnpm cache directories below the system temp directory. |
+| `wipe-node-modules` | boolean | `false` | Remove `node_modules` after a successful package build when the compiler created it during the run. |
+| `timeout-increment` | integer | `0` | Additional timeout seconds added progressively across the package plan. |
 | `package-manager` | string | auto-detected | Project-wide fallback package manager. Supports `npm`, `yarn`, and `pnpm`. Package-level config, `package.json` `packageManager`, and unambiguous lock files still win per package. |
 | `package-types` | string list | WordPress package types | Local path package types considered during auto-discovery. |
 | `default-env` | object | `{}` | Environment variables passed to asset commands. Use `false` to unset a variable. |
@@ -42,6 +45,32 @@ The flat key `extra.sympress.asset-compiler` is also supported. The legacy key `
 | `src-paths` | string list | auto-discovered hash inputs | Optional files or directories that affect the build hash. |
 | `source-paths` | string list | alias for `src-paths` | Compatibility alias. |
 | `timeout` | integer | `900` | Process timeout in seconds. Minimum value is `60`. |
+| `isolated-cache` | boolean | root value | Override isolated package-manager cache behavior for one package. |
+| `precompiled` | object or object list | `[]` | Restore ZIP assets from archives or GitHub before falling back to local builds. |
+| `pre-compiled` | object or object list | alias for `precompiled` | Migration alias. |
+
+## Package Config Files
+
+Packages can store the same package build object in a root-level JSON file:
+
+- `asset-compiler.json`
+- `assets-compiler.json`
+
+The file wins over Composer `extra` for that package. Short forms are supported:
+
+```json
+"build"
+```
+
+Object form:
+
+```json
+{
+  "script": "build",
+  "dependencies": "install",
+  "package-manager": "yarn"
+}
+```
 
 ## Package Selection
 
@@ -115,6 +144,62 @@ The legacy `env` key is treated like `$mode` for compatibility.
 }
 ```
 
+## Environment Overrides
+
+The compiler reads these environment variables before root configuration is finalized:
+
+| Variable | Meaning |
+| --- | --- |
+| `COMPOSER_ASSETS_COMPILER` or `COMPOSER_ASSET_COMPILER` | Default mode when no `--mode` option is passed. |
+| `COMPOSER_ASSET_COMPILER_PRECOMPILING` | Disable auto-discovery for precompilation-oriented runs. |
+| `COMPOSER_ASSET_COMPILER_AUTO_DISCOVER` | Override `auto-discover`. |
+| `COMPOSER_ASSET_COMPILER_STOP_ON_FAILURE` | Override `stop-on-failure`. |
+| `COMPOSER_ASSET_COMPILER_MAX_PROCESSES` | Override `max-processes`. |
+| `COMPOSER_ASSET_COMPILER_PROCESSES_POLL` | Override `process-poll`. |
+| `COMPOSER_ASSET_COMPILER_ISOLATED_CACHE` | Override `isolated-cache`. |
+| `COMPOSER_ASSET_COMPILER_WIPE_NODE_MODULES` | Override `wipe-node-modules`. |
+| `COMPOSER_ASSET_COMPILER_TIMEOUT_INCR` | Override `timeout-increment`. |
+| `COMPOSER_ASSET_COMPILER_PACKAGE_MANAGER` | Override the root package-manager fallback. |
+
+Script strings may reference `${NAME}` placeholders. Values are resolved from merged `default-env` first and then from the process environment.
+
+## Precompiled Assets
+
+Precompiled assets are attempted before local dependency installation and build scripts. A successful restore writes the package lock hash. If no matching precompiled config exists or the restore fails, the compiler falls back to the normal local build.
+
+```json
+{
+  "precompiled": [
+    {
+      "adapter": "archive",
+      "source": "https://example.test/${package}-${version}.zip",
+      "target": "assets",
+      "stability": "stable"
+    },
+    {
+      "adapter": "github-artifact",
+      "source": "assets-${ref}",
+      "target": "assets",
+      "config": {
+        "repository": "vendor/repository"
+      }
+    }
+  ]
+}
+```
+
+Supported adapters:
+
+| Adapter | Source |
+| --- | --- |
+| `archive` or `zip` | Local file path or HTTP(S) ZIP URL. |
+| `github-release` or `gh-release-zip` | GitHub release asset matched by `source`; requires `config.repository`, optional `config.tag`. |
+| `github-artifact` or `gh-action-artifact` | GitHub Actions artifact matched by `source`; requires `config.repository`. |
+
+Supported placeholders in `source`, `target`, and GitHub `tag` are `${name}`, `${vendor}`, `${package}`, `${version}`, `${ref}`, `${reference}`, and `${stability}`.
+
+GitHub adapters use `config.token`, `GITHUB_TOKEN`, or `GH_TOKEN` when available. ZIP targets are cleaned by default; set `"config": {"clean-target": false}` to merge into an existing target.
+
 ## Auto-Discovery
 
 Auto-discovery includes packages that have a readable `package.json` with a `scripts.build` entry and match the configured discovery policy.
@@ -134,6 +219,7 @@ The build hash includes:
 - Composer package name, explicit package-manager name, and root package-manager fallback.
 - Dependency mode.
 - Configured scripts and environment.
+- Precompiled asset configuration.
 - `composer.json`, `package.json`, common lock files, and frontend config files.
 - Common frontend source directories such as `resources`, `frontend`, `client`, and `assets-src`.
 - Configured `src-paths` when a package needs to override the automatic inputs.

@@ -10,6 +10,7 @@ The plugin is intentionally split into a small Composer adapter and reusable app
 | `Config` | Reads and normalizes root/package configuration and mode overlays. |
 | `Discovery` | Finds Composer-installed package workspaces that should be built. |
 | `PackageManager` | Resolves npm, yarn, or pnpm and builds command arguments. |
+| `Precompiled` | Locates, downloads, and extracts precompiled ZIP archives. |
 | `Application` | Hashing, locking, task planning, process execution, and result aggregation. |
 
 ## Flow
@@ -20,9 +21,10 @@ The plugin is intentionally split into a small Composer adapter and reusable app
 4. `PackageDiscovery` scans Composer's local repository and returns buildable workspaces.
 5. `AssetHasher` calculates the current package build hash.
 6. `LockRepository` skips packages with fresh locks unless the lock is ignored.
-7. `BuildStepFactory` creates dependency and script steps.
-8. `TaskRunner` executes steps sequentially or in a bounded process pool.
-9. Successful package hashes are written to `.sympress_asset_compiler.lock`.
+7. Precompiled assets are restored first when a matching configuration exists.
+8. `BuildStepFactory` creates dependency and script steps for packages that still need a local build.
+9. `TaskRunner` runs dependency steps sequentially and script steps in a bounded process pool.
+10. Successful package hashes are written to `.sympress_asset_compiler.lock`.
 
 ## Design Notes
 
@@ -32,6 +34,8 @@ The plugin is intentionally split into a small Composer adapter and reusable app
 - Package workspaces are sorted by name for deterministic output.
 - Parallelism is bounded and configured by the root package.
 - Dependency installation and script execution are separate build steps.
+- Dependency installation is serialized to reduce package-manager cache contention.
+- Precompiled assets are optional and fall back to local builds when unavailable.
 - Lock files are package-local so each package can be reasoned about independently.
 
 ## Symfony Components

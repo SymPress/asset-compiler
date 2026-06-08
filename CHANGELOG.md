@@ -17,6 +17,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - npm, yarn, and pnpm command resolution.
 - Package-local `.sympress_asset_compiler.lock` files.
 - Bounded parallel process execution.
+- Package-manager resolution explanations through `compile-assets --explain`.
+- Root environment overrides for modes, discovery, package manager, process limits, cache isolation, cleanup, and timeout increments.
+- Package-local `asset-compiler.json` and `assets-compiler.json` configuration files.
+- Precompiled ZIP assets from local archives, HTTP(S) archives, GitHub release assets, and GitHub Actions artifacts.
+- Optional isolated package-manager caches and generated `node_modules` cleanup.
 
 ### Changed
 
@@ -24,3 +29,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Removed package-prefix based auto-discovery from the core configuration.
 - Treat source hash paths as automatically discovered inputs unless a package explicitly overrides them.
 - Treat the root `package-manager` as a fallback so packages can auto-detect npm, yarn, or pnpm through package-local signals.
+- Run dependency installation in a controlled sequential phase before parallel build scripts.

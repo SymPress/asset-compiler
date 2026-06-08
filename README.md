@@ -8,6 +8,7 @@ The plugin keeps Composer integration small and moves the actual work into focus
 
 - PHP 8.5 or newer
 - Composer 2 with plugin API 2.2 or newer
+- PHP cURL and Zip extensions for precompiled archive downloads
 - npm, yarn, or pnpm on the runtime PATH
 - Symfony Filesystem, Finder, and Process-compatible components
 
@@ -48,6 +49,7 @@ Useful compile options:
 
 ```bash
 composer compile-assets --dry-run
+composer compile-assets --dry-run --explain
 composer compile-assets --packages 'vendor/package,vendor/theme-*'
 composer compile-assets --ignore-lock='*'
 composer compile-assets --no-install
@@ -106,6 +108,28 @@ Use the object form only when a package needs custom behavior:
 ```
 
 Packages that need a different package manager can also declare it in `package.json`, for example `"packageManager": "npm@10.9.0"`. When a package has conflicting lock files, the root fallback is used unless package config or `packageManager` makes the choice explicit.
+
+Packages may also move their build config into `asset-compiler.json` or `assets-compiler.json` in the package root. The file contains the same object that would otherwise live under Composer `extra.sympress.asset-compiler`.
+
+## Precompiled Assets
+
+Packages can restore ZIP archives instead of building locally. This is useful for production installs, CI artifacts, and release packages:
+
+```json
+{
+  "precompiled": {
+    "adapter": "github-release",
+    "source": "assets-${version}.zip",
+    "target": "assets",
+    "config": {
+      "repository": "vendor/repository",
+      "tag": "${version}"
+    }
+  }
+}
+```
+
+Supported adapters are `archive`, `zip`, `github-release`, `gh-release-zip`, `github-artifact`, and `gh-action-artifact`. If precompiled assets are unavailable, the compiler falls back to the normal build.
 
 ## Build Locks
 
