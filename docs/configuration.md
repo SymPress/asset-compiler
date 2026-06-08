@@ -28,7 +28,7 @@ The flat key `extra.sympress.asset-compiler` is also supported. The legacy key `
 | `isolated-cache` | boolean | `false` | Use package-specific npm/yarn/pnpm cache directories below the system temp directory. |
 | `wipe-node-modules` | boolean | `false` | Remove `node_modules` after a successful package build when the compiler created it during the run. |
 | `timeout-increment` | integer | `0` | Additional timeout seconds added progressively across the package plan. |
-| `package-manager` | string | auto-detected | Project-wide fallback package manager. Supports `npm`, `yarn`, and `pnpm`. Package-level config, `package.json` `packageManager`, and unambiguous lock files still win per package. |
+| `package-manager` | string | auto-detected | Project-wide package-manager preference. Supports `npm`, `yarn`, and `pnpm`. Package-level config, `package.json` `packageManager`, and unambiguous lock files still win per package. npm remains the final fallback. |
 | `package-types` | string list | WordPress package types | Local path package types considered during auto-discovery. |
 | `default-env` | object | `{}` | Environment variables passed to asset commands. Use `false` to unset a variable. |
 | `defaults` | object | `{}` | Default package build configuration. |
@@ -159,7 +159,7 @@ The compiler reads these environment variables before root configuration is fina
 | `COMPOSER_ASSET_COMPILER_ISOLATED_CACHE` | Override `isolated-cache`. |
 | `COMPOSER_ASSET_COMPILER_WIPE_NODE_MODULES` | Override `wipe-node-modules`. |
 | `COMPOSER_ASSET_COMPILER_TIMEOUT_INCR` | Override `timeout-increment`. |
-| `COMPOSER_ASSET_COMPILER_PACKAGE_MANAGER` | Override the root package-manager fallback. |
+| `COMPOSER_ASSET_COMPILER_PACKAGE_MANAGER` | Override the root package-manager preference. |
 
 Script strings may reference `${NAME}` placeholders. Values are resolved from merged `default-env` first and then from the process environment.
 
@@ -216,7 +216,7 @@ A package is included when:
 
 The build hash includes:
 
-- Composer package name, explicit package-manager name, and root package-manager fallback.
+- Composer package name, explicit package-manager name, and root package-manager preference.
 - Dependency mode.
 - Configured scripts and environment.
 - Precompiled asset configuration.

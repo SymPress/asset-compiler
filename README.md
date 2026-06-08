@@ -73,7 +73,7 @@ Root configuration can be as small as enabling auto-run:
 }
 ```
 
-When no package build config is present, packages with a `package.json` `build` script are compiled with dependency installation enabled. Source and config files used for build hashes are discovered automatically from common frontend files and directories. The root `package-manager` is a fallback: package-level config, `package.json` `packageManager`, and unambiguous lock files are still detected per package.
+When no package build config is present, packages with a `package.json` `build` script are compiled with dependency installation enabled. Source and config files used for build hashes are discovered automatically from common frontend files and directories. The root `package-manager` is a project preference: package-level config, `package.json` `packageManager`, and unambiguous lock files still win per package. If nothing can be resolved, npm is the final fallback because it ships with Node.js.
 
 See [Configuration](docs/configuration.md) for all supported keys and mode handling.
 
@@ -107,7 +107,7 @@ Use the object form only when a package needs custom behavior:
 }
 ```
 
-Packages that need a different package manager can also declare it in `package.json`, for example `"packageManager": "npm@10.9.0"`. When a package has conflicting lock files, the root fallback is used unless package config or `packageManager` makes the choice explicit.
+Packages that need a different package manager can also declare it in `package.json`, for example `"packageManager": "npm@10.9.0"`. When a package has conflicting lock files, the root preference is used unless package config or `packageManager` makes the choice explicit. Without a root preference, npm is used.
 
 Packages may also move their build config into `asset-compiler.json` or `assets-compiler.json` in the package root. The file contains the same object that would otherwise live under Composer `extra.sympress.asset-compiler`.
 

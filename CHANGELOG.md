@@ -28,5 +28,5 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Simplified the default setup so root projects only need `auto-run` for the common case.
 - Removed package-prefix based auto-discovery from the core configuration.
 - Treat source hash paths as automatically discovered inputs unless a package explicitly overrides them.
-- Treat the root `package-manager` as a fallback so packages can auto-detect npm, yarn, or pnpm through package-local signals.
+- Treat the root `package-manager` as a project preference and keep npm as the final package-manager fallback.
 - Run dependency installation in a controlled sequential phase before parallel build scripts.

@@ -69,10 +69,10 @@ The package manager is resolved in this order:
 1. Explicit `package-manager` config.
 2. `packageManager` in `package.json`.
 3. Unambiguous lock files in the package directory.
-4. Root `package-manager` fallback.
-5. `npm` fallback.
+4. Root `package-manager` preference.
+5. npm fallback.
 
-When multiple lock file families exist in the same package, the lock files are treated as ambiguous. In that case, package config or `package.json` `packageManager` must make the choice explicit, otherwise the root fallback is used.
+When multiple lock file families exist in the same package, the lock files are treated as ambiguous. In that case, package config or `package.json` `packageManager` must make the choice explicit, otherwise the root preference is used. If no root preference is configured, npm is used as the final fallback because it is installed with Node.js.
 
 Install commands:
 
