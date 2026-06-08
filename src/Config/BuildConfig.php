@@ -19,6 +19,7 @@ final readonly class BuildConfig
         public array $env,
         public array $sourcePaths,
         public int $timeout,
+        public bool $isolatedCache = false,
     ) {
     }
 

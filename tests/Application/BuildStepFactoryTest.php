@@ -21,6 +21,7 @@ final class BuildStepFactoryTest extends TestCase
                 dependencyMode: DependencyMode::Install,
                 packageManager: null,
                 packageManagerFallback: null,
+                isolatedCache: false,
                 env: ['APP_ENV' => 'test'],
                 sourcePaths: [],
                 timeout: 120,
@@ -47,6 +48,7 @@ final class BuildStepFactoryTest extends TestCase
                 dependencyMode: DependencyMode::Install,
                 packageManager: null,
                 packageManagerFallback: null,
+                isolatedCache: false,
                 env: [],
                 sourcePaths: [],
                 timeout: 120,
@@ -57,6 +59,27 @@ final class BuildStepFactoryTest extends TestCase
 
         self::assertCount(1, $steps);
         self::assertSame(['npm', 'run', 'build'], $steps[0]->command);
+    }
+
+    public function testIsolatedCacheIsPassedToDependencyStep(): void
+    {
+        $workspace = $this->workspace(
+            new BuildConfig(
+                scripts: ['build'],
+                dependencyMode: DependencyMode::Install,
+                packageManager: null,
+                packageManagerFallback: null,
+                isolatedCache: true,
+                env: [],
+                sourcePaths: [],
+                timeout: 120,
+            ),
+        );
+
+        $steps = BuildStepFactory::create($workspace, new PackageManager(PackageManager::NPM), true);
+
+        self::assertContains('--cache', $steps[0]->command);
+        self::assertStringContainsString('/sympress-asset-compiler/cache/', implode(' ', $steps[0]->command));
     }
 
     private function workspace(BuildConfig $config): PackageWorkspace

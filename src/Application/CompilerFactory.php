@@ -22,7 +22,7 @@ final class CompilerFactory
     ): AssetCompiler {
         $filesystem = new Filesystem();
         $rootPath = self::rootPath($composer);
-        $reader = new ConfigReader($mode, $devMode);
+        $reader = new ConfigReader($mode ?? self::modeFromEnvironment(), $devMode);
         $rootConfig = $reader->rootConfig($composer->getPackage(), $rootPath);
 
         return new AssetCompiler(
@@ -54,5 +54,18 @@ final class CompilerFactory
         $real = realpath($rootPath);
 
         return is_string($real) ? $real : $rootPath;
+    }
+
+    private static function modeFromEnvironment(): ?string
+    {
+        foreach (['COMPOSER_ASSETS_COMPILER', 'COMPOSER_ASSET_COMPILER'] as $name) {
+            $value = getenv($name);
+
+            if (is_string($value) && trim($value) !== '') {
+                return trim($value);
+            }
+        }
+
+        return null;
     }
 }

@@ -23,9 +23,9 @@ final readonly class PackageManager
     /**
      * @return list<string>
      */
-    public function installCommand(PackageWorkspace $workspace): array
+    public function installCommand(PackageWorkspace $workspace, ?string $cacheDirectory = null): array
     {
-        return match ($this->name) {
+        return $this->withCache(match ($this->name) {
             self::YARN => $this->hasLock($workspace, 'yarn.lock')
                 ? ['yarn', 'install', '--frozen-lockfile', '--mutex', self::YARN_MUTEX]
                 : ['yarn', 'install', '--mutex', self::YARN_MUTEX],
@@ -35,19 +35,19 @@ final readonly class PackageManager
             default => $this->hasNpmLock($workspace)
                 ? ['npm', 'ci']
                 : ['npm', 'install', '--no-package-lock'],
-        };
+        }, $cacheDirectory);
     }
 
     /**
      * @return list<string>
      */
-    public function updateCommand(PackageWorkspace $workspace): array
+    public function updateCommand(PackageWorkspace $workspace, ?string $cacheDirectory = null): array
     {
-        return match ($this->name) {
+        return $this->withCache(match ($this->name) {
             self::YARN => ['yarn', 'upgrade', '--mutex', self::YARN_MUTEX],
             self::PNPM => ['pnpm', 'update'],
             default => ['npm', 'update', '--no-save'],
-        };
+        }, $cacheDirectory);
     }
 
     /**
@@ -99,6 +99,23 @@ final readonly class PackageManager
     {
         return $this->hasLock($workspace, 'package-lock.json')
             || $this->hasLock($workspace, 'npm-shrinkwrap.json');
+    }
+
+    /**
+     * @param list<string> $command
+     * @return list<string>
+     */
+    private function withCache(array $command, ?string $cacheDirectory): array
+    {
+        if ($cacheDirectory === null || trim($cacheDirectory) === '') {
+            return $command;
+        }
+
+        return match ($this->name) {
+            self::YARN => array_merge($command, ['--cache-folder', $cacheDirectory]),
+            self::PNPM => array_merge($command, ['--store-dir', $cacheDirectory]),
+            default => array_merge($command, ['--cache', $cacheDirectory]),
+        };
     }
 
     private function hasLock(PackageWorkspace $workspace, string $file): bool

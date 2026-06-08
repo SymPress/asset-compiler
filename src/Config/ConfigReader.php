@@ -19,15 +19,43 @@ final readonly class ConfigReader
     public function rootConfig(RootPackageInterface $package, string $rootPath): RootConfig
     {
         $data = $this->modes->root($this->packageExtra($package));
+        $precompiling = $this->envBool('COMPOSER_ASSET_COMPILER_PRECOMPILING', false);
 
         return new RootConfig(
             rootPath: rtrim($rootPath, '/'),
             autoRun: $this->bool($this->value($data, 'auto-run'), false),
-            autoDiscover: $this->bool($this->value($data, 'auto-discover'), true),
-            stopOnFailure: $this->bool($this->value($data, 'stop-on-failure'), true),
-            maxProcesses: max(1, min(8, $this->int($this->value($data, 'max-processes'), 4))),
-            processPoll: max(10000, $this->int($this->value($data, 'process-poll'), 100000)),
-            packageManager: $this->packageManager($this->value($data, 'package-manager')),
+            autoDiscover: $precompiling ? false : $this->envBool(
+                'COMPOSER_ASSET_COMPILER_AUTO_DISCOVER',
+                $this->bool($this->value($data, 'auto-discover'), true),
+            ),
+            stopOnFailure: $this->envBool(
+                'COMPOSER_ASSET_COMPILER_STOP_ON_FAILURE',
+                $this->bool($this->value($data, 'stop-on-failure'), true),
+            ),
+            maxProcesses: max(1, min(8, $this->envInt(
+                'COMPOSER_ASSET_COMPILER_MAX_PROCESSES',
+                $this->int($this->value($data, 'max-processes'), 4),
+            ))),
+            processPoll: max(10000, $this->envInt(
+                'COMPOSER_ASSET_COMPILER_PROCESSES_POLL',
+                $this->int($this->value($data, 'process-poll'), 100000),
+            )),
+            isolatedCache: $this->envBool(
+                'COMPOSER_ASSET_COMPILER_ISOLATED_CACHE',
+                $this->bool($this->value($data, 'isolated-cache'), false),
+            ),
+            wipeNodeModules: $this->envBool(
+                'COMPOSER_ASSET_COMPILER_WIPE_NODE_MODULES',
+                $this->bool($this->value($data, 'wipe-node-modules'), false),
+            ),
+            timeoutIncrement: max(0, $this->envInt(
+                'COMPOSER_ASSET_COMPILER_TIMEOUT_INCR',
+                $this->int($this->value($data, 'timeout-increment'), 0),
+            )),
+            packageManager: $this->packageManager(
+                $this->envString('COMPOSER_ASSET_COMPILER_PACKAGE_MANAGER')
+                ?? $this->value($data, 'package-manager'),
+            ),
             defaults: $this->array($this->value($data, 'defaults')),
             packages: $this->array($this->value($data, 'packages')),
             packageTypes: $this->stringList(
@@ -75,7 +103,8 @@ final readonly class ConfigReader
             $base = ['script' => 'build'];
         }
 
-        $scripts = $this->scripts($this->value($base, 'script'), $packageJson);
+        $env = array_replace($root->env, $this->env($this->value($base, 'default-env')));
+        $scripts = $this->scripts($this->value($base, 'script'), $packageJson, $env);
         $dependencyMode = DependencyMode::fromMixed(
             $this->value($base, 'dependencies'),
             $scripts === [] ? DependencyMode::None : DependencyMode::Install,
@@ -86,7 +115,8 @@ final readonly class ConfigReader
             dependencyMode: $dependencyMode,
             packageManager: $this->packageManager($this->value($base, 'package-manager')),
             packageManagerFallback: $root->packageManager,
-            env: array_replace($root->env, $this->env($this->value($base, 'default-env'))),
+            isolatedCache: $this->bool($this->value($base, 'isolated-cache'), $root->isolatedCache),
+            env: $env,
             sourcePaths: $this->stringList(
                 $this->value($base, 'source-paths') ?? $this->value($base, 'src-paths'),
                 [],
@@ -139,7 +169,7 @@ final readonly class ConfigReader
      * @param array<string, mixed> $packageJson
      * @return list<string>
      */
-    private function scripts(mixed $raw, array $packageJson): array
+    private function scripts(mixed $raw, array $packageJson, array $env): array
     {
         $raw = $this->modes->property($raw);
 
@@ -155,11 +185,28 @@ final readonly class ConfigReader
 
         foreach ($raw as $script) {
             if (is_string($script) && trim($script) !== '') {
-                $scripts[] = trim($script);
+                $scripts[] = $this->interpolate(trim($script), $env);
             }
         }
 
         return array_values(array_unique($scripts));
+    }
+
+    /**
+     * @param array<string, string|false> $env
+     */
+    private function interpolate(string $value, array $env): string
+    {
+        return (string) preg_replace_callback(
+            '/\$\{([A-Z0-9_]+)\}/i',
+            static function (array $matches) use ($env): string {
+                $name = $matches[1];
+                $value = $env[$name] ?? getenv($name);
+
+                return is_string($value) ? $value : '';
+            },
+            $value,
+        );
     }
 
     private function packageManager(mixed $value): ?string
@@ -247,6 +294,27 @@ final readonly class ConfigReader
         }
 
         return filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $default;
+    }
+
+    private function envBool(string $name, bool $default): bool
+    {
+        $value = $this->envString($name);
+
+        return $value === null ? $default : $this->bool($value, $default);
+    }
+
+    private function envInt(string $name, int $default): int
+    {
+        $value = $this->envString($name);
+
+        return $value === null ? $default : $this->int($value, $default);
+    }
+
+    private function envString(string $name): ?string
+    {
+        $value = getenv($name);
+
+        return is_string($value) && trim($value) !== '' ? trim($value) : null;
     }
 
     private function int(mixed $value, int $default): int

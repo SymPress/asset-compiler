@@ -28,6 +28,9 @@ final class ConfigReaderTest extends TestCase
         self::assertTrue($config->autoRun);
         self::assertTrue($config->autoDiscover);
         self::assertSame(4, $config->maxProcesses);
+        self::assertFalse($config->isolatedCache);
+        self::assertFalse($config->wipeNodeModules);
+        self::assertSame(0, $config->timeoutIncrement);
         self::assertSame('yarn', $config->packageManager);
         self::assertSame([], $config->defaults);
         self::assertSame(['wordpress-plugin', 'wordpress-theme', 'wordpress-muplugin'], $config->packageTypes);
@@ -42,6 +45,9 @@ final class ConfigReaderTest extends TestCase
             stopOnFailure: true,
             maxProcesses: 4,
             processPoll: 100000,
+            isolatedCache: false,
+            wipeNodeModules: false,
+            timeoutIncrement: 0,
             packageManager: 'yarn',
             defaults: [],
             packages: [],
@@ -62,6 +68,46 @@ final class ConfigReaderTest extends TestCase
         self::assertSame(DependencyMode::Install, $config->dependencyMode);
         self::assertNull($config->packageManager);
         self::assertSame('yarn', $config->packageManagerFallback);
+        self::assertFalse($config->isolatedCache);
         self::assertSame([], $config->sourcePaths);
+    }
+
+    public function testScriptInterpolatesDefaultEnvironment(): void
+    {
+        $root = new RootConfig(
+            rootPath: '/project',
+            autoRun: true,
+            autoDiscover: true,
+            stopOnFailure: true,
+            maxProcesses: 4,
+            processPoll: 100000,
+            isolatedCache: true,
+            wipeNodeModules: false,
+            timeoutIncrement: 0,
+            packageManager: null,
+            defaults: [],
+            packages: [],
+            packageTypes: ['wordpress-plugin'],
+            env: ['BUILD_TARGET' => 'admin'],
+        );
+
+        $package = new Package('acme/package', '1.0.0.0', '1.0.0');
+        $package->setExtra([
+            RootConfig::EXTRA_KEY => [
+                'script' => 'build -- ${BUILD_TARGET}',
+            ],
+        ]);
+
+        $config = (new ConfigReader(null, true))->buildConfig(
+            $package,
+            $root,
+            ['scripts' => ['build' => 'encore production']],
+            null,
+            false,
+        );
+
+        self::assertNotNull($config);
+        self::assertSame(['build -- admin'], $config->scripts);
+        self::assertTrue($config->isolatedCache);
     }
 }

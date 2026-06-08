@@ -22,11 +22,13 @@ final class BuildStepFactory
         $config = $workspace->build;
 
         if ($installDependencies && $config->dependencyMode !== DependencyMode::None) {
+            $cacheDirectory = $config->isolatedCache ? self::cacheDirectory($workspace) : null;
+
             $steps[] = new BuildStep(
                 $config->dependencyMode === DependencyMode::Update ? 'update dependencies' : 'install dependencies',
                 $config->dependencyMode === DependencyMode::Update
-                    ? $manager->updateCommand($workspace)
-                    : $manager->installCommand($workspace),
+                    ? $manager->updateCommand($workspace, $cacheDirectory)
+                    : $manager->installCommand($workspace, $cacheDirectory),
                 $workspace->path,
                 $config->timeout,
                 $config->env,
@@ -46,5 +48,10 @@ final class BuildStepFactory
         }
 
         return $steps;
+    }
+
+    private static function cacheDirectory(PackageWorkspace $workspace): string
+    {
+        return rtrim(sys_get_temp_dir(), '/') . '/sympress-asset-compiler/cache/' . sha1($workspace->name);
     }
 }
