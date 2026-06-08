@@ -13,7 +13,9 @@
     "require": {
         "php": "^8.5",
         "composer-plugin-api": "^2.2",
+        "ext-curl": "*",
         "ext-json": "*",
+        "ext-zip": "*",
         "symfony/filesystem": "^8.0",
         "symfony/finder": "^8.0",
         "symfony/process": "^5.4.47 || ^6.4.25 || ^7.1.10 || ^8.0"
