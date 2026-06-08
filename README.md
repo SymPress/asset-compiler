@@ -45,6 +45,12 @@ Print the current build hash for discovered packages:
 composer assets-hash
 ```
 
+Run the local quality gate used by this package:
+
+```bash
+composer check
+```
+
 Useful compile options:
 
 ```bash
@@ -73,7 +79,7 @@ Root configuration can be as small as enabling auto-run:
 }
 ```
 
-When no package build config is present, packages with a `package.json` `build` script are compiled with dependency installation enabled. Source and config files used for build hashes are discovered automatically from common frontend files and directories. The root `package-manager` is a project preference: package-level config, `package.json` `packageManager`, and unambiguous lock files still win per package. If nothing can be resolved, npm is the final fallback because it ships with Node.js.
+When no package build config is present, packages with a `package.json` `build` script are compiled with dependency installation enabled. Source and config files used for build hashes are discovered automatically from common frontend files and directories. The root `package-manager` is a project preference: package-level config, `package.json` `packageManager`, and unambiguous lock files still win per package. If nothing can be resolved, npm is the final fallback because it ships with Node.js. Invalid package-manager names fail early.
 
 See [Configuration](docs/configuration.md) for all supported keys and mode handling.
 
@@ -121,6 +127,7 @@ Packages can restore ZIP archives instead of building locally. This is useful fo
     "adapter": "github-release",
     "source": "assets-${version}.zip",
     "target": "assets",
+    "checksum": "sha256:<64 hex characters>",
     "config": {
       "repository": "vendor/repository",
       "tag": "${version}"
@@ -129,11 +136,11 @@ Packages can restore ZIP archives instead of building locally. This is useful fo
 }
 ```
 
-Supported adapters are `archive`, `zip`, `github-release`, `gh-release-zip`, `github-artifact`, and `gh-action-artifact`. If precompiled assets are unavailable, the compiler falls back to the normal build.
+Supported adapters are `archive`, `zip`, `github-release`, `gh-release-zip`, `github-artifact`, and `gh-action-artifact`. If precompiled assets are unavailable, the compiler falls back to the normal build. Downloads use HTTP(S)-only redirects, bounded timeouts, archive size limits, and ZIP extraction limits. GitHub tokens are only sent to trusted GitHub API/download hosts and are not forwarded to arbitrary redirect targets.
 
 ## Build Locks
 
-Every successful package build writes a package-local `.sympress_asset_compiler.lock` file. The lock stores the current build hash, so unchanged packages can be skipped on future runs.
+Every successful package build writes a package-local `.sympress_asset_compiler.lock` file. The lock stores the current build hash, so unchanged packages can be skipped on future runs. The hash includes the resolved package manager, source inputs, build config, environment, and precompiled asset configuration.
 
 Use `--ignore-lock='*'` to rebuild everything or `--ignore-lock='vendor/package-*'` to rebuild selected package patterns.
 

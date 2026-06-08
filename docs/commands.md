@@ -19,7 +19,7 @@ Options:
 | `--packages <patterns>` | Only process comma-separated package names or fnmatch patterns. |
 | `--no-install` | Skip dependency installation and run only build scripts. |
 | `--dry-run` | Print the planned package-manager commands without executing them. |
-| `--explain` | Print package-manager resolution details and skip reasons. |
+| `--explain` | Print lock status, precompiled configuration count, package-manager resolution details, and skip reasons. |
 
 Examples:
 
@@ -36,11 +36,15 @@ composer compile-assets --no-install
 
 The command summary reports discovered packages, packages that were built, restored, or planned, packages already current through build locks, and failures. The same summary is printed when `auto-run` is enabled for Composer install or update events.
 
+With `--explain`, each package reports whether its lock is current, stale, missing, or ignored. Packages with runnable build steps also report the resolved package manager and the signal that selected it.
+
 Dependency installation and dependency updates are executed in a controlled sequential phase. Build scripts then run through the bounded process pool configured by `max-processes`.
 
 ## `assets-hash`
 
 Prints the current build hash for every discovered package. This is useful when debugging why a package is skipped or rebuilt.
+
+Hashes include the resolved package manager when a package needs package-manager-backed dependency or script steps. This means changing from an npm fallback build to a Yarn build invalidates the old lock automatically.
 
 Alias:
 

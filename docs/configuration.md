@@ -28,7 +28,7 @@ The flat key `extra.sympress.asset-compiler` is also supported. The legacy key `
 | `isolated-cache` | boolean | `false` | Use package-specific npm/yarn/pnpm cache directories below the system temp directory. |
 | `wipe-node-modules` | boolean | `false` | Remove `node_modules` after a successful package build when the compiler created it during the run. |
 | `timeout-increment` | integer | `0` | Additional timeout seconds added progressively across the package plan. |
-| `package-manager` | string | auto-detected | Project-wide package-manager preference. Supports `npm`, `yarn`, and `pnpm`. Package-level config, `package.json` `packageManager`, and unambiguous lock files still win per package. npm remains the final fallback. |
+| `package-manager` | string | auto-detected | Project-wide package-manager preference. Supports `npm`, `yarn`, and `pnpm`. Package-level config, `package.json` `packageManager`, and unambiguous lock files still win per package. npm remains the final fallback. Unsupported values fail early. |
 | `package-types` | string list | WordPress package types | Local path package types considered during auto-discovery. |
 | `default-env` | object | `{}` | Environment variables passed to asset commands. Use `false` to unset a variable. |
 | `defaults` | object | `{}` | Default package build configuration. |
@@ -48,6 +48,8 @@ The flat key `extra.sympress.asset-compiler` is also supported. The legacy key `
 | `isolated-cache` | boolean | root value | Override isolated package-manager cache behavior for one package. |
 | `precompiled` | object or object list | `[]` | Restore ZIP assets from archives or GitHub before falling back to local builds. |
 | `pre-compiled` | object or object list | alias for `precompiled` | Migration alias. |
+
+Package config files must contain valid JSON. Invalid local config files fail with a clear error instead of being ignored silently.
 
 ## Package Config Files
 
@@ -174,7 +176,8 @@ Precompiled assets are attempted before local dependency installation and build 
       "adapter": "archive",
       "source": "https://example.test/${package}-${version}.zip",
       "target": "assets",
-      "stability": "stable"
+      "stability": "stable",
+      "checksum": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
     },
     {
       "adapter": "github-artifact",
@@ -196,9 +199,20 @@ Supported adapters:
 | `github-release` or `gh-release-zip` | GitHub release asset matched by `source`; requires `config.repository`, optional `config.tag`. |
 | `github-artifact` or `gh-action-artifact` | GitHub Actions artifact matched by `source`; requires `config.repository`. |
 
-Supported placeholders in `source`, `target`, and GitHub `tag` are `${name}`, `${vendor}`, `${package}`, `${version}`, `${ref}`, `${reference}`, and `${stability}`.
+Supported placeholders in `source`, `target`, `checksum`, and GitHub `tag` are `${name}`, `${vendor}`, `${package}`, `${version}`, `${ref}`, `${reference}`, and `${stability}`.
 
-GitHub adapters use `config.token`, `GITHUB_TOKEN`, or `GH_TOKEN` when available. ZIP targets are cleaned by default; set `"config": {"clean-target": false}` to merge into an existing target.
+GitHub adapters use `config.token`, `GITHUB_TOKEN`, or `GH_TOKEN` when available. Tokens are scoped to trusted GitHub API/download hosts and are not forwarded to arbitrary redirect targets. ZIP targets are cleaned by default; set `"config": {"clean-target": false}` to merge into an existing target.
+
+Optional SHA-256 verification can be configured through `checksum`, `sha256`, `config.checksum`, or `config.sha256`. Values may be raw 64-character hashes or `sha256:<hash>`.
+
+Precompiled downloads and extraction are intentionally bounded:
+
+- Downloads use HTTP(S) only and reject HTTPS-to-HTTP redirects.
+- Generic archive redirects must stay on the same host.
+- GitHub archive redirects are restricted to known GitHub/GitHub-backed download hosts.
+- Downloads are limited to 100 MiB by default.
+- ZIP extraction is limited to 20,000 entries, 100 MiB per entry, and 512 MiB total uncompressed size.
+- ZIP entries with absolute paths or `..` path segments are rejected.
 
 ## Auto-Discovery
 
@@ -217,11 +231,12 @@ A package is included when:
 The build hash includes:
 
 - Composer package name, explicit package-manager name, and root package-manager preference.
+- The resolved package manager and why it was selected.
 - Dependency mode.
 - Configured scripts and environment.
 - Precompiled asset configuration.
 - `composer.json`, `package.json`, common lock files, and frontend config files.
-- Common frontend source directories such as `resources`, `frontend`, `client`, and `assets-src`.
+- Common frontend source directories such as `resources`, `src`, `source`, `frontend`, `client`, `assets-src`, `blocks`, `components`, `scripts`, `styles`, `views`, and `templates`.
 - Configured `src-paths` when a package needs to override the automatic inputs.
 
 Fresh packages are skipped unless `--ignore-lock` matches the package name.
