@@ -58,45 +58,35 @@ See [Commands](docs/commands.md) for the full command reference.
 
 ## Root Configuration
 
-Root configuration lives in `extra.sympress.asset-compiler`:
+Root configuration can be as small as enabling auto-run:
 
 ```json
 {
   "extra": {
-    "sympress": {
-      "asset-compiler": {
-        "auto-run": false,
-        "auto-discover": true,
-        "max-processes": 2,
-        "package-prefixes": ["sympress/", "acme/"],
-        "package-types": ["wordpress-plugin", "wordpress-theme", "wordpress-muplugin"],
-        "default-env": {
-          "npm_config_legacy_peer_deps": "true"
-        },
-        "defaults": {
-          "script": "build",
-          "dependencies": "install",
-          "source-paths": [
-            "package.json",
-            "package-lock.json",
-            "pnpm-lock.yaml",
-            "yarn.lock",
-            "webpack.config.js",
-            "vite.config.js",
-            "resources"
-          ]
-        }
-      }
+    "sympress.asset-compiler": {
+      "auto-run": true
     }
   }
 }
 ```
 
+When no package build config is present, packages with a `package.json` `build` script are compiled with dependency installation enabled. Source and config files used for build hashes are discovered automatically from common frontend files and directories.
+
 See [Configuration](docs/configuration.md) for all supported keys and mode handling.
 
 ## Package Configuration
 
-Individual packages can opt in or override defaults through their own Composer `extra` section:
+Individual packages can opt in or override defaults through their own Composer `extra` section. The short form is enough for most packages:
+
+```json
+{
+  "extra": {
+    "sympress.asset-compiler": "build"
+  }
+}
+```
+
+Use the object form only when a package needs custom behavior:
 
 ```json
 {
@@ -107,19 +97,9 @@ Individual packages can opt in or override defaults through their own Composer `
         "dependencies": "install",
         "package-manager": "npm",
         "timeout": 900,
-        "source-paths": ["package.json", "assets", "resources"]
+        "src-paths": ["resources", "webpack.config.js"]
       }
     }
-  }
-}
-```
-
-A short string form is also supported:
-
-```json
-{
-  "extra": {
-    "sympress.asset-compiler": "build"
   }
 }
 ```

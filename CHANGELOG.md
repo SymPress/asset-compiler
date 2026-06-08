@@ -17,3 +17,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - npm, yarn, and pnpm command resolution.
 - Package-local `.sympress_asset_compiler.lock` files.
 - Bounded parallel process execution.
+
+### Changed
+
+- Simplified the default setup so root projects only need `auto-run` for the common case.
+- Removed package-prefix based auto-discovery from the core configuration.
+- Treat source hash paths as automatically discovered inputs unless a package explicitly overrides them.

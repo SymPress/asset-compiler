@@ -16,7 +16,6 @@ final readonly class RootConfig
      * @param array<string, mixed> $defaults
      * @param array<string, mixed> $packages
      * @param list<string> $packageTypes
-     * @param list<string> $packagePrefixes
      * @param array<string, string|false> $env
      */
     public function __construct(
@@ -29,7 +28,6 @@ final readonly class RootConfig
         public array $defaults,
         public array $packages,
         public array $packageTypes,
-        public array $packagePrefixes,
         public array $env,
     ) {
     }

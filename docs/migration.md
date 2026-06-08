@@ -28,14 +28,8 @@ Preferred root config:
 ```json
 {
   "extra": {
-    "sympress": {
-      "asset-compiler": {
-        "auto-discover": true,
-        "defaults": {
-          "script": "build",
-          "dependencies": "install"
-        }
-      }
+    "sympress.asset-compiler": {
+      "auto-run": true
     }
   }
 }

@@ -182,15 +182,11 @@ final readonly class PackageDiscovery
             return false;
         }
 
-        if ($this->rootConfig->packagePrefixes !== [] && !$this->matchesPrefix($package->getName())) {
-            return false;
-        }
-
-        if (in_array($package->getType(), $this->rootConfig->packageTypes, true)) {
+        if ($this->isProjectPackage($package)) {
             return true;
         }
 
-        return $this->requiresAssetsPackage($package) || $this->hasKernelMetadata($package);
+        return false;
     }
 
     private function selection(string $packageName): ?RootPackageSelection
@@ -272,17 +268,6 @@ final readonly class PackageDiscovery
         return is_array($scripts) && is_string($scripts['build'] ?? null);
     }
 
-    private function matchesPrefix(string $packageName): bool
-    {
-        foreach ($this->rootConfig->packagePrefixes as $prefix) {
-            if (str_starts_with($packageName, $prefix)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private function requiresAssetsPackage(PackageInterface $package): bool
     {
         foreach ($package->getRequires() as $link) {
@@ -292,6 +277,16 @@ final readonly class PackageDiscovery
         }
 
         return false;
+    }
+
+    private function isProjectPackage(PackageInterface $package): bool
+    {
+        if ($this->requiresAssetsPackage($package) || $this->hasKernelMetadata($package)) {
+            return true;
+        }
+
+        return in_array($package->getType(), $this->rootConfig->packageTypes, true)
+            && $package->getDistType() === 'path';
     }
 
     private function hasKernelMetadata(PackageInterface $package): bool

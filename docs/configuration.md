@@ -23,10 +23,9 @@ The flat key `extra.sympress.asset-compiler` is also supported. The legacy key `
 | `auto-run` | boolean | `false` | Run the compiler after Composer install and update events. Auto-run uses a late event priority and prints the same compilation summary as the manual command. |
 | `auto-discover` | boolean | `true` | Discover packages with build scripts automatically. |
 | `stop-on-failure` | boolean | `true` | Stop the run after the first failing package. |
-| `max-processes` | integer | `1` | Number of package builds to run in parallel. Values are clamped to `1..8`. |
+| `max-processes` | integer | `4` | Number of package builds to run in parallel. Values are clamped to `1..8`. |
 | `process-poll` | integer | `100000` | Poll interval in microseconds for parallel process execution. |
-| `package-types` | string list | WordPress package types | Composer package types considered during auto-discovery. |
-| `package-prefixes` | string list | `[]` | Optional package-name prefixes for auto-discovery. |
+| `package-types` | string list | WordPress package types | Local path package types considered during auto-discovery. |
 | `default-env` | object | `{}` | Environment variables passed to asset commands. Use `false` to unset a variable. |
 | `defaults` | object | `{}` | Default package build configuration. |
 | `packages` | object | `{}` | Explicit package selections, overrides, or disabled packages. |
@@ -39,8 +38,8 @@ The flat key `extra.sympress.asset-compiler` is also supported. The legacy key `
 | `dependencies` | string | `install` when scripts are present | `install`, `update`, or `none`. |
 | `package-manager` | string | auto-detected | `npm`, `yarn`, or `pnpm`. |
 | `default-env` | object | `{}` | Package-level command environment merged over root environment. |
-| `source-paths` | string list | default hash paths | Files or directories that affect the build hash. |
-| `src-paths` | string list | alias for `source-paths` | Compatibility alias. |
+| `src-paths` | string list | auto-discovered hash inputs | Optional files or directories that affect the build hash. |
+| `source-paths` | string list | alias for `src-paths` | Compatibility alias. |
 | `timeout` | integer | `900` | Process timeout in seconds. Minimum value is `60`. |
 
 ## Package Selection
@@ -123,9 +122,9 @@ A package is included when:
 
 - It has explicit asset-compiler package config.
 - It is explicitly listed in root `packages`.
-- Auto-discovery is enabled, it has a build script, and it matches the configured package prefixes and types.
-- Its Composer package requires `sympress/assets`.
-- Its Composer `extra.kernel.bundle` metadata is present.
+- Auto-discovery is enabled, it has a build script, and it is a local Composer path package with a configured package type.
+- Auto-discovery is enabled, it has a build script, and its Composer package requires `sympress/assets`.
+- Auto-discovery is enabled, it has a build script, and its Composer `extra.kernel.bundle` metadata is present.
 
 ## Build Hashes
 
@@ -134,7 +133,8 @@ The build hash includes:
 - Composer package name and package-manager name.
 - Dependency mode.
 - Configured scripts and environment.
-- `package.json` and common lock/config files.
-- Configured source files and directories.
+- `composer.json`, `package.json`, common lock files, and frontend config files.
+- Common frontend source directories such as `resources`, `frontend`, `client`, and `assets-src`.
+- Configured `src-paths` when a package needs to override the automatic inputs.
 
 Fresh packages are skipped unless `--ignore-lock` matches the package name.

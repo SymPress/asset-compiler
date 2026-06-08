@@ -25,7 +25,7 @@ final readonly class ConfigReader
             autoRun: $this->bool($this->value($data, 'auto-run'), false),
             autoDiscover: $this->bool($this->value($data, 'auto-discover'), true),
             stopOnFailure: $this->bool($this->value($data, 'stop-on-failure'), true),
-            maxProcesses: max(1, min(8, $this->int($this->value($data, 'max-processes'), 1))),
+            maxProcesses: max(1, min(8, $this->int($this->value($data, 'max-processes'), 4))),
             processPoll: max(10000, $this->int($this->value($data, 'process-poll'), 100000)),
             defaults: $this->array($this->value($data, 'defaults')),
             packages: $this->array($this->value($data, 'packages')),
@@ -33,7 +33,6 @@ final readonly class ConfigReader
                 $this->value($data, 'package-types'),
                 ['wordpress-plugin', 'wordpress-theme', 'wordpress-muplugin'],
             ),
-            packagePrefixes: $this->stringList($this->value($data, 'package-prefixes'), []),
             env: $this->env($this->value($data, 'default-env')),
         );
     }
