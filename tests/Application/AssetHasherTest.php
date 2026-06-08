@@ -6,10 +6,12 @@ namespace SymPress\AssetCompiler\Tests\Application;
 
 use Composer\IO\BufferIO;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use Symfony\Component\Filesystem\Filesystem;
 use SymPress\AssetCompiler\Application\AssetHasher;
 use SymPress\AssetCompiler\Config\BuildConfig;
 use SymPress\AssetCompiler\Config\DependencyMode;
+use SymPress\AssetCompiler\Config\PrecompiledAssetConfig;
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
 use SymPress\AssetCompiler\PackageManager\PackageManager;
 use SymPress\AssetCompiler\PackageManager\PackageManagerResolution;
@@ -56,7 +58,26 @@ final class AssetHasherTest extends TestCase
         self::assertNotSame($before, $hasher->hash($workspace));
     }
 
-    private function workspace(): PackageWorkspace
+    public function testHashReportsJsonEncodingErrors(): void
+    {
+        $recursive = [];
+        $recursive['self'] = &$recursive;
+
+        $workspace = $this->workspace([
+            new PrecompiledAssetConfig('archive', 'assets.zip', 'assets', $recursive),
+        ]);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Could not serialize JSON for asset hash context for vendor/package');
+        $this->expectExceptionMessage('Recursion detected');
+
+        (new AssetHasher(new BufferIO()))->hash($workspace);
+    }
+
+    /**
+     * @param list<PrecompiledAssetConfig> $precompiledAssets
+     */
+    private function workspace(array $precompiledAssets = []): PackageWorkspace
     {
         $this->workspacePath = sys_get_temp_dir() . '/sympress_asset_compiler_hasher_' . bin2hex(random_bytes(8));
         mkdir($this->workspacePath);
@@ -74,6 +95,7 @@ final class AssetHasherTest extends TestCase
                 env: [],
                 sourcePaths: [],
                 timeout: 120,
+                precompiledAssets: $precompiledAssets,
             ),
             packageJson: ['scripts' => ['build' => 'webpack']],
         );
