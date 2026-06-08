@@ -38,6 +38,33 @@ final class PrecompiledAssetInstallerTest extends TestCase
         self::assertSame('{"ok":true}', file_get_contents($workspace->path . '/assets/manifest.json'));
     }
 
+    public function testVerifiesConfiguredChecksum(): void
+    {
+        $archive = $this->archive(['manifest.json' => '{"ok":true}']);
+        $workspace = $this->workspace($archive, hash_file('sha256', $archive) ?: null);
+
+        self::assertTrue($this->installer()->install($workspace));
+        self::assertFileExists($workspace->path . '/assets/manifest.json');
+    }
+
+    public function testRejectsChecksumMismatch(): void
+    {
+        $archive = $this->archive(['manifest.json' => '{"ok":true}']);
+        $workspace = $this->workspace($archive, str_repeat('0', 64));
+
+        self::assertFalse($this->installer()->install($workspace));
+        self::assertFileDoesNotExist($workspace->path . '/assets/manifest.json');
+    }
+
+    public function testRejectsUnsafeZipEntryPaths(): void
+    {
+        $archive = $this->archive(['../manifest.json' => '{"unsafe":true}']);
+        $workspace = $this->workspace($archive);
+
+        self::assertFalse($this->installer()->install($workspace));
+        self::assertFileDoesNotExist($workspace->path . '/manifest.json');
+    }
+
     private function installer(): PrecompiledAssetInstaller
     {
         $filesystem = new Filesystem();
@@ -69,7 +96,7 @@ final class PrecompiledAssetInstallerTest extends TestCase
         return $archive;
     }
 
-    private function workspace(string $archive): PackageWorkspace
+    private function workspace(string $archive, ?string $checksum = null): PackageWorkspace
     {
         return new PackageWorkspace(
             name: 'vendor/package',
@@ -84,7 +111,7 @@ final class PrecompiledAssetInstallerTest extends TestCase
                 sourcePaths: [],
                 timeout: 120,
                 precompiledAssets: [
-                    new PrecompiledAssetConfig('archive', $archive, 'assets'),
+                    new PrecompiledAssetConfig('archive', $archive, 'assets', checksum: $checksum),
                 ],
             ),
             packageJson: [],

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SymPress\AssetCompiler\Precompiled;
 
+use RuntimeException;
 use SymPress\AssetCompiler\Config\PrecompiledAssetConfig;
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
 
@@ -16,20 +17,26 @@ final readonly class GitHubAssetLocator
     public function releaseAsset(PackageWorkspace $workspace, PrecompiledAssetConfig $config): string
     {
         $repository = $this->repository($config);
-        $tag = $this->replace((string) ($config->config['tag'] ?? $workspace->version), $workspace);
+        $configuredTag = $config->config['tag'] ?? $workspace->version;
+        $tag = $this->replace(is_string($configuredTag) ? $configuredTag : $workspace->version, $workspace);
         $asset = $this->replace($config->source, $workspace);
         $release = $this->downloader->json(
             sprintf('https://api.github.com/repos/%s/releases/tags/%s', $repository, rawurlencode($tag)),
-            $this->headers($config),
+            DownloadOptions::githubApi($this->apiHeaders($config)),
         );
+        $assets = $release['assets'] ?? [];
 
-        foreach (($release['assets'] ?? []) as $candidate) {
-            if (is_array($candidate) && ($candidate['name'] ?? null) === $asset && is_string($candidate['browser_download_url'] ?? null)) {
-                return $candidate['browser_download_url'];
+        if (!is_iterable($assets)) {
+            $assets = [];
+        }
+
+        foreach ($assets as $candidate) {
+            if (is_array($candidate) && ($candidate['name'] ?? null) === $asset && is_string($candidate['url'] ?? null)) {
+                return $candidate['url'];
             }
         }
 
-        throw new \RuntimeException(sprintf('GitHub release asset %s was not found in %s@%s.', $asset, $repository, $tag));
+        throw new RuntimeException(sprintf('GitHub release asset %s was not found in %s@%s.', $asset, $repository, $tag));
     }
 
     public function artifact(PackageWorkspace $workspace, PrecompiledAssetConfig $config): string
@@ -38,10 +45,15 @@ final readonly class GitHubAssetLocator
         $name = $this->replace($config->source, $workspace);
         $artifacts = $this->downloader->json(
             sprintf('https://api.github.com/repos/%s/actions/artifacts?per_page=100&name=%s', $repository, rawurlencode($name)),
-            $this->headers($config),
+            DownloadOptions::githubApi($this->apiHeaders($config)),
         );
+        $artifactList = $artifacts['artifacts'] ?? [];
 
-        foreach (($artifacts['artifacts'] ?? []) as $artifact) {
+        if (!is_iterable($artifactList)) {
+            $artifactList = [];
+        }
+
+        foreach ($artifactList as $artifact) {
             if (
                 is_array($artifact)
                 && ($artifact['expired'] ?? true) === false
@@ -51,7 +63,12 @@ final readonly class GitHubAssetLocator
             }
         }
 
-        throw new \RuntimeException(sprintf('GitHub artifact %s was not found in %s.', $name, $repository));
+        throw new RuntimeException(sprintf('GitHub artifact %s was not found in %s.', $name, $repository));
+    }
+
+    public function archiveOptions(PrecompiledAssetConfig $config): DownloadOptions
+    {
+        return DownloadOptions::githubArchive($this->archiveHeaders($config));
     }
 
     public function replace(string $value, PackageWorkspace $workspace): string
@@ -74,7 +91,7 @@ final readonly class GitHubAssetLocator
         $repository = $config->config['repository'] ?? null;
 
         if (!is_string($repository) || trim($repository) === '') {
-            throw new \RuntimeException('GitHub precompiled assets require config.repository.');
+            throw new RuntimeException('GitHub precompiled assets require config.repository.');
         }
 
         return trim($repository);
@@ -83,10 +100,25 @@ final readonly class GitHubAssetLocator
     /**
      * @return array<string, string>
      */
-    private function headers(PrecompiledAssetConfig $config): array
+    private function apiHeaders(PrecompiledAssetConfig $config): array
     {
         $token = $config->config['token'] ?? getenv('GITHUB_TOKEN') ?: getenv('GH_TOKEN');
         $headers = ['Accept' => 'application/vnd.github+json'];
+
+        if (is_string($token) && trim($token) !== '') {
+            $headers['Authorization'] = 'Bearer ' . trim($token);
+        }
+
+        return $headers;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function archiveHeaders(PrecompiledAssetConfig $config): array
+    {
+        $token = $config->config['token'] ?? getenv('GITHUB_TOKEN') ?: getenv('GH_TOKEN');
+        $headers = ['Accept' => 'application/octet-stream'];
 
         if (is_string($token) && trim($token) !== '') {
             $headers['Authorization'] = 'Bearer ' . trim($token);
