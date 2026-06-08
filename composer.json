@@ -1,0 +1,45 @@
+{
+    "name": "sympress/asset-compiler",
+    "description": "Composer plugin for compiling frontend assets in SymPress and WordPress package workspaces.",
+    "type": "composer-plugin",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Brian Schaffner",
+            "email": "brian.schaeffner@sympress.de",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.5",
+        "composer-plugin-api": "^2.2",
+        "ext-json": "*",
+        "symfony/filesystem": "^8.0",
+        "symfony/finder": "^8.0",
+        "symfony/process": "^5.4.47 || ^6.4.25 || ^7.1.10 || ^8.0"
+    },
+    "require-dev": {
+        "composer/composer": "^2.10",
+        "phpunit/phpunit": "^11.5"
+    },
+    "replace": {
+        "inpsyde/composer-assets-compiler": "self.version"
+    },
+    "autoload": {
+        "psr-4": {
+            "SymPress\\AssetCompiler\\": "src/"
+        }
+    },
+    "extra": {
+        "class": "SymPress\\AssetCompiler\\Composer\\Plugin"
+    },
+    "scripts": {
+        "test": "phpunit --no-coverage"
+    },
+    "config": {
+        "sort-packages": true,
+        "optimize-autoloader": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
