@@ -64,13 +64,14 @@ Root configuration can be as small as enabling auto-run:
 {
   "extra": {
     "sympress.asset-compiler": {
-      "auto-run": true
+      "auto-run": true,
+      "package-manager": "yarn"
     }
   }
 }
 ```
 
-When no package build config is present, packages with a `package.json` `build` script are compiled with dependency installation enabled. Source and config files used for build hashes are discovered automatically from common frontend files and directories.
+When no package build config is present, packages with a `package.json` `build` script are compiled with dependency installation enabled. Source and config files used for build hashes are discovered automatically from common frontend files and directories. Omit `package-manager` to let each package choose through `packageManager`, lock files, or npm fallback.
 
 See [Configuration](docs/configuration.md) for all supported keys and mode handling.
 

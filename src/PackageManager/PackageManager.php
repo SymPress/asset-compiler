@@ -8,6 +8,8 @@ use SymPress\AssetCompiler\Discovery\PackageWorkspace;
 
 final readonly class PackageManager
 {
+    private const YARN_MUTEX = 'file:/tmp/sympress-asset-compiler-yarn.lock';
+
     public const NPM = 'npm';
 
     public const YARN = 'yarn';
@@ -25,8 +27,8 @@ final readonly class PackageManager
     {
         return match ($this->name) {
             self::YARN => $this->hasLock($workspace, 'yarn.lock')
-                ? ['yarn', 'install', '--frozen-lockfile']
-                : ['yarn', 'install'],
+                ? ['yarn', 'install', '--frozen-lockfile', '--mutex', self::YARN_MUTEX]
+                : ['yarn', 'install', '--mutex', self::YARN_MUTEX],
             self::PNPM => $this->hasLock($workspace, 'pnpm-lock.yaml')
                 ? ['pnpm', 'install', '--frozen-lockfile']
                 : ['pnpm', 'install'],
@@ -42,7 +44,7 @@ final readonly class PackageManager
     public function updateCommand(PackageWorkspace $workspace): array
     {
         return match ($this->name) {
-            self::YARN => ['yarn', 'upgrade'],
+            self::YARN => ['yarn', 'upgrade', '--mutex', self::YARN_MUTEX],
             self::PNPM => ['pnpm', 'update'],
             default => ['npm', 'update', '--no-save'],
         };

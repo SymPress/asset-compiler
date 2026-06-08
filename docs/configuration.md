@@ -25,6 +25,7 @@ The flat key `extra.sympress.asset-compiler` is also supported. The legacy key `
 | `stop-on-failure` | boolean | `true` | Stop the run after the first failing package. |
 | `max-processes` | integer | `4` | Number of package builds to run in parallel. Values are clamped to `1..8`. |
 | `process-poll` | integer | `100000` | Poll interval in microseconds for parallel process execution. |
+| `package-manager` | string | auto-detected | Project-wide default package manager. Supports `npm`, `yarn`, and `pnpm`. |
 | `package-types` | string list | WordPress package types | Local path package types considered during auto-discovery. |
 | `default-env` | object | `{}` | Environment variables passed to asset commands. Use `false` to unset a variable. |
 | `defaults` | object | `{}` | Default package build configuration. |

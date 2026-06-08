@@ -19,6 +19,7 @@ final class ConfigReaderTest extends TestCase
         $package->setExtra([
             RootConfig::EXTRA_KEY => [
                 'auto-run' => true,
+                'package-manager' => 'yarn',
             ],
         ]);
 
@@ -27,6 +28,7 @@ final class ConfigReaderTest extends TestCase
         self::assertTrue($config->autoRun);
         self::assertTrue($config->autoDiscover);
         self::assertSame(4, $config->maxProcesses);
+        self::assertSame('yarn', $config->packageManager);
         self::assertSame([], $config->defaults);
         self::assertSame(['wordpress-plugin', 'wordpress-theme', 'wordpress-muplugin'], $config->packageTypes);
     }
@@ -40,6 +42,7 @@ final class ConfigReaderTest extends TestCase
             stopOnFailure: true,
             maxProcesses: 4,
             processPoll: 100000,
+            packageManager: 'yarn',
             defaults: [],
             packages: [],
             packageTypes: ['wordpress-plugin'],
@@ -57,6 +60,7 @@ final class ConfigReaderTest extends TestCase
         self::assertNotNull($config);
         self::assertSame(['build'], $config->scripts);
         self::assertSame(DependencyMode::Install, $config->dependencyMode);
+        self::assertSame('yarn', $config->packageManager);
         self::assertSame([], $config->sourcePaths);
     }
 }

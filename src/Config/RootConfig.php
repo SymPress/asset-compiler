@@ -25,6 +25,7 @@ final readonly class RootConfig
         public bool $stopOnFailure,
         public int $maxProcesses,
         public int $processPoll,
+        public ?string $packageManager,
         public array $defaults,
         public array $packages,
         public array $packageTypes,

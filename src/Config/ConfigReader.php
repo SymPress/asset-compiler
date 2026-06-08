@@ -27,6 +27,7 @@ final readonly class ConfigReader
             stopOnFailure: $this->bool($this->value($data, 'stop-on-failure'), true),
             maxProcesses: max(1, min(8, $this->int($this->value($data, 'max-processes'), 4))),
             processPoll: max(10000, $this->int($this->value($data, 'process-poll'), 100000)),
+            packageManager: $this->packageManager($this->value($data, 'package-manager')),
             defaults: $this->array($this->value($data, 'defaults')),
             packages: $this->array($this->value($data, 'packages')),
             packageTypes: $this->stringList(
@@ -83,7 +84,7 @@ final readonly class ConfigReader
         $config = new BuildConfig(
             scripts: $scripts,
             dependencyMode: $dependencyMode,
-            packageManager: $this->packageManager($this->value($base, 'package-manager')),
+            packageManager: $this->packageManager($this->value($base, 'package-manager')) ?? $root->packageManager,
             env: array_replace($root->env, $this->env($this->value($base, 'default-env'))),
             sourcePaths: $this->stringList(
                 $this->value($base, 'source-paths') ?? $this->value($base, 'src-paths'),

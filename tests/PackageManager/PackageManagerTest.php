@@ -47,6 +47,16 @@ final class PackageManagerTest extends TestCase
         );
     }
 
+    public function testYarnInstallUsesSharedMutex(): void
+    {
+        $workspace = $this->workspace();
+
+        self::assertSame(
+            ['yarn', 'install', '--mutex', 'file:/tmp/sympress-asset-compiler-yarn.lock'],
+            (new PackageManager(PackageManager::YARN))->installCommand($workspace),
+        );
+    }
+
     private function workspaceWithFile(string $file): PackageWorkspace
     {
         $workspace = $this->workspace();
