@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SymPress\AssetCompiler\PackageManager;
 
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
+use SymPress\AssetCompiler\Support\StringList;
 
 final readonly class PackageManager
 {
@@ -85,14 +86,7 @@ final readonly class PackageManager
      */
     private function splitArguments(string $arguments): array
     {
-        $tokens = str_getcsv($arguments, ' ', '"', '\\');
-
-        return array_values(
-            array_filter(
-                array_map(static fn (string $token): string => trim($token), $tokens),
-                static fn (string $token): bool => $token !== '',
-            ),
-        );
+        return StringList::fromShellArguments($arguments);
     }
 
     private function hasNpmLock(PackageWorkspace $workspace): bool

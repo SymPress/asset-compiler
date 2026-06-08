@@ -9,6 +9,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use SymPress\AssetCompiler\Application\CompilerFactory;
+use SymPress\AssetCompiler\Support\StringList;
 
 final class AssetHashCommand extends BaseCommand
 {
@@ -70,11 +71,6 @@ final class AssetHashCommand extends BaseCommand
             return [];
         }
 
-        return array_values(
-            array_filter(
-                array_map(static fn (string $part): string => trim($part), explode(',', $value)),
-                static fn (string $part): bool => $part !== '',
-            ),
-        );
+        return StringList::fromCsv($value);
     }
 }
