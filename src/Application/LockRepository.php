@@ -7,6 +7,7 @@ namespace SymPress\AssetCompiler\Application;
 use Composer\IO\IOInterface;
 use Symfony\Component\Filesystem\Filesystem;
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
+use SymPress\AssetCompiler\Support\StringList;
 
 final readonly class LockRepository
 {
@@ -20,19 +21,30 @@ final readonly class LockRepository
 
     public function isFresh(PackageWorkspace $workspace, string $hash, string $ignoreLock): bool
     {
+        return $this->status($workspace, $hash, $ignoreLock)->fresh;
+    }
+
+    public function status(PackageWorkspace $workspace, string $hash, string $ignoreLock): LockStatus
+    {
         if ($this->shouldIgnore($workspace->name, $ignoreLock)) {
-            return false;
+            return new LockStatus(false, 'ignored by option');
         }
 
         $file = $this->file($workspace);
 
         if (!is_file($file)) {
-            return false;
+            return new LockStatus(false, 'missing lock');
         }
 
         $contents = file_get_contents($file);
 
-        return is_string($contents) && trim($contents) === $hash;
+        if (!is_string($contents) || trim($contents) === '') {
+            return new LockStatus(false, 'empty lock');
+        }
+
+        return trim($contents) === $hash
+            ? new LockStatus(true, 'current')
+            : new LockStatus(false, 'stale lock');
     }
 
     public function write(PackageWorkspace $workspace, string $hash): void
@@ -67,18 +79,10 @@ final readonly class LockRepository
             return true;
         }
 
-        foreach (explode(',', $ignoreLock) as $pattern) {
-            $pattern = trim($pattern);
-
-            if ($pattern === '') {
-                continue;
-            }
-
-            if ($pattern === $packageName || fnmatch($pattern, $packageName, FNM_PATHNAME | FNM_PERIOD | FNM_CASEFOLD)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any(
+            StringList::fromCsv($ignoreLock),
+            static fn(string $pattern): bool => $pattern === $packageName
+                || fnmatch($pattern, $packageName, FNM_PATHNAME | FNM_PERIOD | FNM_CASEFOLD),
+        );
     }
 }

@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace SymPress\AssetCompiler\Application;
 
 use Composer\IO\IOInterface;
+use SymPress\AssetCompiler\Config\DependencyMode;
 use SymPress\AssetCompiler\Config\RootConfig;
 use SymPress\AssetCompiler\Discovery\PackageDiscovery;
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
+use SymPress\AssetCompiler\PackageManager\PackageManagerResolution;
 use SymPress\AssetCompiler\PackageManager\PackageManagerResolver;
 use SymPress\AssetCompiler\Precompiled\PrecompiledAssetInstaller;
 
@@ -32,6 +34,8 @@ final readonly class AssetCompiler
 
     /**
      * @param list<string> $packagePatterns
+     *
+     * @throws \JsonException
      */
     public function compile(
         string $ignoreLock = '',
@@ -47,9 +51,15 @@ final readonly class AssetCompiler
         $position = 0;
 
         foreach ($workspaces as $workspace) {
-            $hash = $this->hasher->hash($workspace);
+            $manager = $this->managerFor($workspace);
+            $hash = $this->hasher->hash($workspace, $manager);
+            $lock = $this->locks->status($workspace, $hash, $ignoreLock);
 
-            if (!$dryRun && $this->locks->isFresh($workspace, $hash, $ignoreLock)) {
+            if ($explain) {
+                $this->explainWorkspace($workspace, $manager, $lock);
+            }
+
+            if (!$dryRun && $lock->fresh) {
                 ++$skipped;
                 $this->io->write(
                     sprintf('<comment>Skipping %s</comment> assets are already current.', $workspace->name),
@@ -66,7 +76,16 @@ final readonly class AssetCompiler
                 continue;
             }
 
-            $manager = $this->packageManagers->resolve($workspace);
+            if (!$manager instanceof PackageManagerResolution) {
+                ++$skipped;
+
+                if ($explain) {
+                    $this->io->write(sprintf('<comment>%s</comment> skipped: no package-manager backed build steps.', $workspace->name));
+                }
+
+                continue;
+            }
+
             $steps = BuildStepFactory::create(
                 $workspace,
                 $manager->manager,
@@ -84,19 +103,16 @@ final readonly class AssetCompiler
             }
 
             if ($dryRun) {
-                $this->io->write(
-                    sprintf('<info>%s</info> package manager: %s (%s)', $workspace->name, $manager->manager->name, $manager->reason),
-                );
+                if (!$explain) {
+                    $this->io->write(
+                        sprintf('<info>%s</info> package manager: %s (%s)', $workspace->name, $manager->manager->name, $manager->reason),
+                    );
+                }
+
                 foreach ($steps as $step) {
                     $this->io->write(sprintf('  %s', $step->displayCommand()));
                 }
                 continue;
-            }
-
-            if ($explain) {
-                $this->io->write(
-                    sprintf('<info>%s</info> package manager: %s (%s)', $workspace->name, $manager->manager->name, $manager->reason),
-                );
             }
 
             $tasks[] = new BuildTask($workspace, $hash, $steps);
@@ -137,7 +153,7 @@ final readonly class AssetCompiler
         $hashes = [];
 
         foreach ($this->filteredPackages($packagePatterns) as $workspace) {
-            $hashes[$workspace->name] = $this->hasher->hash($workspace);
+            $hashes[$workspace->name] = $this->hasher->hash($workspace, $this->managerFor($workspace));
         }
 
         ksort($hashes);
@@ -160,7 +176,7 @@ final readonly class AssetCompiler
         return array_values(
             array_filter(
                 $workspaces,
-                static fn (PackageWorkspace $workspace): bool => self::matchesAny(
+                static fn(PackageWorkspace $workspace): bool => self::matchesAny(
                     $workspace->name,
                     $packagePatterns,
                 ),
@@ -173,12 +189,33 @@ final readonly class AssetCompiler
      */
     private static function matchesAny(string $name, array $patterns): bool
     {
-        foreach ($patterns as $pattern) {
-            if ($pattern === $name || fnmatch($pattern, $name, FNM_PATHNAME | FNM_PERIOD | FNM_CASEFOLD)) {
-                return true;
-            }
+        return array_any(
+            $patterns,
+            static fn(string $pattern): bool => $pattern === $name
+                || fnmatch($pattern, $name, FNM_PATHNAME | FNM_PERIOD | FNM_CASEFOLD),
+        );
+    }
+
+    private function managerFor(PackageWorkspace $workspace): ?PackageManagerResolution
+    {
+        if ($workspace->build->scripts === [] && $workspace->build->dependencyMode === DependencyMode::None) {
+            return null;
         }
 
-        return false;
+        return $this->packageManagers->resolve($workspace);
+    }
+
+    private function explainWorkspace(PackageWorkspace $workspace, ?PackageManagerResolution $manager, LockStatus $lock): void
+    {
+        $this->io->write(sprintf(
+            '<info>%s</info> lock: %s%s',
+            $workspace->name,
+            $lock->reason,
+            $workspace->build->precompiledAssets === [] ? '' : sprintf(', precompiled: %d configured', count($workspace->build->precompiledAssets)),
+        ));
+
+        if ($manager instanceof PackageManagerResolution) {
+            $this->io->write(sprintf('  package manager: %s (%s)', $manager->manager->name, $manager->reason));
+        }
     }
 }

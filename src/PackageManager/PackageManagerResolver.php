@@ -76,7 +76,7 @@ final class PackageManagerResolver
             return null;
         }
 
-        return explode('@', trim($manager), 2)[0] ?? null;
+        return explode('@', trim($manager), 2)[0];
     }
 
     private function fromLockFiles(PackageWorkspace $workspace): ?string

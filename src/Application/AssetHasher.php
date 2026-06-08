@@ -7,6 +7,7 @@ namespace SymPress\AssetCompiler\Application;
 use Composer\IO\IOInterface;
 use Symfony\Component\Finder\Finder;
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
+use SymPress\AssetCompiler\PackageManager\PackageManagerResolution;
 
 final readonly class AssetHasher
 {
@@ -25,12 +26,20 @@ final readonly class AssetHasher
         'webpack.config.mjs',
         'vite.config.js',
         'vite.config.ts',
+        'rollup.config.js',
+        'rollup.config.cjs',
+        'rollup.config.mjs',
+        'esbuild.config.js',
         'postcss.config.js',
         'postcss.config.cjs',
         'tailwind.config.js',
         'tailwind.config.cjs',
         'tsconfig.json',
+        'tsconfig.build.json',
         'babel.config.js',
+        '.babelrc',
+        '.browserslistrc',
+        'browserslist',
     ];
 
     /**
@@ -38,32 +47,43 @@ final readonly class AssetHasher
      */
     private const DEFAULT_DIRECTORIES = [
         'resources',
+        'src',
+        'source',
         'frontend',
         'client',
         'assets-src',
+        'blocks',
+        'components',
+        'scripts',
+        'styles',
+        'views',
+        'templates',
     ];
 
     public function __construct(private IOInterface $io)
     {
     }
 
-    public function hash(PackageWorkspace $workspace): string
+    public function hash(PackageWorkspace $workspace, ?PackageManagerResolution $packageManager = null): string
     {
         $files = $this->files($workspace);
         $context = [
             'package' => $workspace->name,
             'manager' => $workspace->build->packageManager,
             'manager-preference' => $workspace->build->packageManagerPreference,
+            'resolved-manager' => $packageManager?->manager->name,
+            'resolved-manager-reason' => $packageManager?->reason,
             'dependencies' => $workspace->build->dependencyMode->value,
             'scripts' => $workspace->build->scripts,
             'env' => $workspace->build->env,
             'precompiled' => array_map(
-                static fn (\SymPress\AssetCompiler\Config\PrecompiledAssetConfig $config): array => [
+                static fn(\SymPress\AssetCompiler\Config\PrecompiledAssetConfig $config): array => [
                     'adapter' => $config->adapter,
                     'source' => $config->source,
                     'target' => $config->target,
                     'config' => $config->config,
                     'stability' => $config->stability,
+                    'checksum' => $config->checksum,
                 ],
                 $workspace->build->precompiledAssets,
             ),
@@ -142,7 +162,7 @@ final readonly class AssetHasher
                 ->files()
                 ->ignoreUnreadableDirs()
                 ->ignoreVCS(true)
-                ->exclude(['node_modules', 'vendor', 'assets', 'var', 'public'])
+                ->exclude(['node_modules', 'vendor', 'assets', 'build', 'coverage', 'dist', 'public', 'var'])
                 ->in($absolute)
                 ->sortByName();
 
