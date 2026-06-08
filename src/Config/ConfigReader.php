@@ -123,6 +123,9 @@ final readonly class ConfigReader
                 [],
             ),
             timeout: max(60, $this->int($this->value($base, 'timeout'), 900)),
+            precompiledAssets: $this->precompiledAssets(
+                $this->value($base, 'precompiled') ?? $this->value($base, 'pre-compiled'),
+            ),
         );
 
         return $config->runnable() ? $config : null;
@@ -373,5 +376,44 @@ final readonly class ConfigReader
     private function int(mixed $value, int $default): int
     {
         return is_numeric($value) ? (int) $value : $default;
+    }
+
+    /**
+     * @return list<PrecompiledAssetConfig>
+     */
+    private function precompiledAssets(mixed $value): array
+    {
+        $value = $this->modes->property($value);
+
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $items = array_is_list($value) ? $value : [$value];
+        $configs = [];
+
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $adapter = $item['adapter'] ?? null;
+            $source = $item['source'] ?? null;
+            $target = $item['target'] ?? 'assets';
+
+            if (!is_string($adapter) || trim($adapter) === '' || !is_string($source) || trim($source) === '') {
+                continue;
+            }
+
+            $configs[] = new PrecompiledAssetConfig(
+                adapter: strtolower(trim($adapter)),
+                source: trim($source),
+                target: is_string($target) && trim($target) !== '' ? trim($target) : 'assets',
+                config: is_array($item['config'] ?? null) ? $item['config'] : [],
+                stability: is_string($item['stability'] ?? null) ? strtolower(trim($item['stability'])) : null,
+            );
+        }
+
+        return $configs;
     }
 }

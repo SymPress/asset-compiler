@@ -17,6 +17,9 @@ final readonly class PackageWorkspace
         public string $path,
         public BuildConfig $build,
         public array $packageJson,
+        public string $version = '',
+        public string $reference = '',
+        public string $stability = 'stable',
     ) {
     }
 }

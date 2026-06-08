@@ -57,6 +57,16 @@ final readonly class AssetHasher
             'dependencies' => $workspace->build->dependencyMode->value,
             'scripts' => $workspace->build->scripts,
             'env' => $workspace->build->env,
+            'precompiled' => array_map(
+                static fn (\SymPress\AssetCompiler\Config\PrecompiledAssetConfig $config): array => [
+                    'adapter' => $config->adapter,
+                    'source' => $config->source,
+                    'target' => $config->target,
+                    'config' => $config->config,
+                    'stability' => $config->stability,
+                ],
+                $workspace->build->precompiledAssets,
+            ),
         ];
 
         $payload = hash('sha256', json_encode($context, JSON_THROW_ON_ERROR));

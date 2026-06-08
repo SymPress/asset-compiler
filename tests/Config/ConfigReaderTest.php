@@ -135,4 +135,51 @@ final class ConfigReaderTest extends TestCase
             rmdir($path);
         }
     }
+
+    public function testBuildConfigParsesPrecompiledAssets(): void
+    {
+        $root = new RootConfig(
+            rootPath: '/project',
+            autoRun: true,
+            autoDiscover: true,
+            stopOnFailure: true,
+            maxProcesses: 4,
+            processPoll: 100000,
+            isolatedCache: false,
+            wipeNodeModules: false,
+            timeoutIncrement: 0,
+            packageManager: null,
+            defaults: [],
+            packages: [],
+            packageTypes: ['wordpress-plugin'],
+            env: [],
+        );
+        $package = new Package('acme/package', '1.0.0.0', '1.0.0');
+        $package->setExtra([
+            RootConfig::EXTRA_KEY => [
+                'script' => 'build',
+                'pre-compiled' => [
+                    'adapter' => 'archive',
+                    'source' => 'https://example.test/assets-${version}.zip',
+                    'target' => 'assets',
+                    'stability' => 'stable',
+                    'config' => ['clean-target' => false],
+                ],
+            ],
+        ]);
+
+        $config = (new ConfigReader(null, true))->buildConfig(
+            $package,
+            $root,
+            ['scripts' => ['build' => 'encore production']],
+            null,
+            false,
+        );
+
+        self::assertNotNull($config);
+        self::assertCount(1, $config->precompiledAssets);
+        self::assertSame('archive', $config->precompiledAssets[0]->adapter);
+        self::assertSame('https://example.test/assets-${version}.zip', $config->precompiledAssets[0]->source);
+        self::assertFalse($config->precompiledAssets[0]->config['clean-target']);
+    }
 }

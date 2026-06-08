@@ -78,6 +78,9 @@ final readonly class PackageDiscovery
                 $path,
                 $build,
                 $packageJson,
+                $this->version($package),
+                $this->reference($package),
+                $this->stability($package),
             );
         }
 
@@ -118,6 +121,9 @@ final readonly class PackageDiscovery
             $this->rootConfig->rootPath,
             $build,
             $packageJson,
+            $this->version($package),
+            $this->reference($package),
+            $this->stability($package),
         );
     }
 
@@ -137,6 +143,31 @@ final readonly class PackageDiscovery
         $path = is_string($real) ? $real : $path;
 
         return is_dir($path) ? $this->normalizePath($path) : null;
+    }
+
+    private function version(PackageInterface $package): string
+    {
+        return method_exists($package, 'getPrettyVersion') ? (string) $package->getPrettyVersion() : $package->getVersion();
+    }
+
+    private function reference(PackageInterface $package): string
+    {
+        foreach (['getSourceReference', 'getDistReference'] as $method) {
+            if (method_exists($package, $method)) {
+                $reference = $package->{$method}();
+
+                if (is_string($reference) && $reference !== '') {
+                    return $reference;
+                }
+            }
+        }
+
+        return '';
+    }
+
+    private function stability(PackageInterface $package): string
+    {
+        return method_exists($package, 'getStability') ? (string) $package->getStability() : 'stable';
     }
 
     /**

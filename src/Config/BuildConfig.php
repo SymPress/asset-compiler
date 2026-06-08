@@ -10,6 +10,7 @@ final readonly class BuildConfig
      * @param list<string> $scripts
      * @param array<string, string|false> $env
      * @param list<string> $sourcePaths
+     * @param list<PrecompiledAssetConfig> $precompiledAssets
      */
     public function __construct(
         public array $scripts,
@@ -20,6 +21,7 @@ final readonly class BuildConfig
         public array $sourcePaths,
         public int $timeout,
         public bool $isolatedCache = false,
+        public array $precompiledAssets = [],
     ) {
     }
 
