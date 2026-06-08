@@ -53,7 +53,7 @@ final readonly class AssetHasher
         $context = [
             'package' => $workspace->name,
             'manager' => $workspace->build->packageManager,
-            'manager-fallback' => $workspace->build->packageManagerFallback,
+            'manager-preference' => $workspace->build->packageManagerPreference,
             'dependencies' => $workspace->build->dependencyMode->value,
             'scripts' => $workspace->build->scripts,
             'env' => $workspace->build->env,

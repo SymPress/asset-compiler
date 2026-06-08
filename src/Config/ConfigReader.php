@@ -115,7 +115,7 @@ final readonly class ConfigReader
             scripts: $scripts,
             dependencyMode: $dependencyMode,
             packageManager: $this->packageManager($this->value($base, 'package-manager')),
-            packageManagerFallback: $root->packageManager,
+            packageManagerPreference: $root->packageManager,
             isolatedCache: $this->bool($this->value($base, 'isolated-cache'), $root->isolatedCache),
             env: $env,
             sourcePaths: $this->stringList(

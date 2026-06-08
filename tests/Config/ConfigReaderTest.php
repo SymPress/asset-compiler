@@ -67,7 +67,7 @@ final class ConfigReaderTest extends TestCase
         self::assertSame(['build'], $config->scripts);
         self::assertSame(DependencyMode::Install, $config->dependencyMode);
         self::assertNull($config->packageManager);
-        self::assertSame('yarn', $config->packageManagerFallback);
+        self::assertSame('yarn', $config->packageManagerPreference);
         self::assertFalse($config->isolatedCache);
         self::assertSame([], $config->sourcePaths);
     }

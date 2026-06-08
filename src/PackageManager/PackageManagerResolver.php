@@ -63,7 +63,7 @@ final class PackageManagerResolver
             [$workspace->build->packageManager, 'package config'],
             [$this->fromPackageJson($workspace), 'package.json packageManager'],
             [$this->fromLockFiles($workspace), 'lock file'],
-            [$workspace->build->packageManagerFallback, 'root fallback'],
+            [$workspace->build->packageManagerPreference, 'root preference'],
             [PackageManager::NPM, 'npm fallback'],
         ];
     }

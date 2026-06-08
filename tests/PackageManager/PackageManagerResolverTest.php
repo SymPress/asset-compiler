@@ -29,11 +29,11 @@ final class PackageManagerResolverTest extends TestCase
         }
     }
 
-    public function testPackageJsonPackageManagerWinsOverRootFallback(): void
+    public function testPackageJsonPackageManagerWinsOverRootPreference(): void
     {
         $workspace = $this->workspace(
             packageJson: ['packageManager' => 'npm@10.9.0'],
-            packageManagerFallback: PackageManager::YARN,
+            packageManagerPreference: PackageManager::YARN,
         );
 
         $resolution = $this->resolver()->resolve($workspace);
@@ -42,11 +42,11 @@ final class PackageManagerResolverTest extends TestCase
         self::assertSame('package.json packageManager', $resolution->reason);
     }
 
-    public function testSingleNpmLockWinsOverRootFallback(): void
+    public function testSingleNpmLockWinsOverRootPreference(): void
     {
         $workspace = $this->workspace(
             files: ['package-lock.json'],
-            packageManagerFallback: PackageManager::YARN,
+            packageManagerPreference: PackageManager::YARN,
         );
 
         $resolution = $this->resolver()->resolve($workspace);
@@ -55,27 +55,37 @@ final class PackageManagerResolverTest extends TestCase
         self::assertSame('lock file', $resolution->reason);
     }
 
-    public function testRootFallbackIsUsedWhenPackageHasNoManagerSignal(): void
+    public function testRootPreferenceIsUsedWhenPackageHasNoManagerSignal(): void
     {
-        $workspace = $this->workspace(packageManagerFallback: PackageManager::YARN);
+        $workspace = $this->workspace(packageManagerPreference: PackageManager::YARN);
 
         $resolution = $this->resolver()->resolve($workspace);
 
         self::assertSame(PackageManager::YARN, $resolution->manager->name);
-        self::assertSame('root fallback', $resolution->reason);
+        self::assertSame('root preference', $resolution->reason);
     }
 
-    public function testAmbiguousLockFilesUseRootFallback(): void
+    public function testNpmIsFallbackWhenPackageHasNoManagerSignalOrRootPreference(): void
+    {
+        $workspace = $this->workspace();
+
+        $resolution = $this->resolver()->resolve($workspace);
+
+        self::assertSame(PackageManager::NPM, $resolution->manager->name);
+        self::assertSame('npm fallback', $resolution->reason);
+    }
+
+    public function testAmbiguousLockFilesUseRootPreference(): void
     {
         $workspace = $this->workspace(
             files: ['package-lock.json', 'yarn.lock'],
-            packageManagerFallback: PackageManager::YARN,
+            packageManagerPreference: PackageManager::YARN,
         );
 
         $resolution = $this->resolver()->resolve($workspace);
 
         self::assertSame(PackageManager::YARN, $resolution->manager->name);
-        self::assertSame('root fallback', $resolution->reason);
+        self::assertSame('root preference', $resolution->reason);
     }
 
     public function testExplicitPackageConfigWinsOverDetectedSignals(): void
@@ -84,7 +94,7 @@ final class PackageManagerResolverTest extends TestCase
             packageManager: PackageManager::PNPM,
             packageJson: ['packageManager' => 'npm@10.9.0'],
             files: ['yarn.lock'],
-            packageManagerFallback: PackageManager::YARN,
+            packageManagerPreference: PackageManager::YARN,
         );
 
         $resolution = $this->resolver()->resolve($workspace);
@@ -112,7 +122,7 @@ final class PackageManagerResolverTest extends TestCase
         ?string $packageManager = null,
         array $packageJson = [],
         array $files = [],
-        ?string $packageManagerFallback = null,
+        ?string $packageManagerPreference = null,
     ): PackageWorkspace {
         $path = sys_get_temp_dir() . '/sympress_asset_compiler_resolver_' . bin2hex(random_bytes(8));
         mkdir($path);
@@ -130,7 +140,7 @@ final class PackageManagerResolverTest extends TestCase
                 scripts: [],
                 dependencyMode: DependencyMode::None,
                 packageManager: $packageManager,
-                packageManagerFallback: $packageManagerFallback,
+                packageManagerPreference: $packageManagerPreference,
                 env: [],
                 sourcePaths: [],
                 timeout: 120,

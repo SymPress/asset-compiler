@@ -79,7 +79,7 @@ final class PrecompiledAssetInstallerTest extends TestCase
                 scripts: [],
                 dependencyMode: DependencyMode::None,
                 packageManager: null,
-                packageManagerFallback: null,
+                packageManagerPreference: null,
                 env: [],
                 sourcePaths: [],
                 timeout: 120,

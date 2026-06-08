@@ -16,7 +16,7 @@ final readonly class BuildConfig
         public array $scripts,
         public DependencyMode $dependencyMode,
         public ?string $packageManager,
-        public ?string $packageManagerFallback,
+        public ?string $packageManagerPreference,
         public array $env,
         public array $sourcePaths,
         public int $timeout,
