@@ -27,28 +27,22 @@ final class PackageManagerResolver
         $this->availability = $availability !== null ? \Closure::fromCallable($availability) : null;
     }
 
-    public function resolve(PackageWorkspace $workspace): PackageManager
+    public function resolve(PackageWorkspace $workspace): PackageManagerResolution
     {
-        $candidates = array_values(
-            array_unique(
-                array_filter(
-                    [
-                        $workspace->build->packageManager,
-                        $this->fromPackageJson($workspace),
-                        $this->fromLockFiles($workspace),
-                        $workspace->build->packageManagerFallback,
-                        PackageManager::NPM,
-                    ],
-                    static fn (?string $name): bool => is_string($name) && $name !== '',
-                ),
-            ),
-        );
+        $candidates = $this->candidates($workspace);
+        $seen = [];
 
-        foreach ($candidates as $candidate) {
-            $name = $this->normalize($candidate);
+        foreach ($candidates as [$candidate, $reason]) {
+            $name = $this->normalize($candidate ?? '');
 
-            if ($name !== null && $this->isAvailable($name)) {
-                return new PackageManager($name);
+            if ($name === null || isset($seen[$name])) {
+                continue;
+            }
+
+            $seen[$name] = true;
+
+            if ($this->isAvailable($name)) {
+                return new PackageManagerResolution(new PackageManager($name), $reason);
             }
         }
 
@@ -58,6 +52,20 @@ final class PackageManagerResolver
                 $workspace->name,
             ),
         );
+    }
+
+    /**
+     * @return list<array{?string, string}>
+     */
+    private function candidates(PackageWorkspace $workspace): array
+    {
+        return [
+            [$workspace->build->packageManager, 'package config'],
+            [$this->fromPackageJson($workspace), 'package.json packageManager'],
+            [$this->fromLockFiles($workspace), 'lock file'],
+            [$workspace->build->packageManagerFallback, 'root fallback'],
+            [PackageManager::NPM, 'npm fallback'],
+        ];
     }
 
     private function fromPackageJson(PackageWorkspace $workspace): ?string

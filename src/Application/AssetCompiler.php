@@ -36,6 +36,7 @@ final readonly class AssetCompiler
         array $packagePatterns = [],
         bool $installDependencies = true,
         bool $dryRun = false,
+        bool $explain = false,
     ): CompilationResult {
         $workspaces = $this->filteredPackages($packagePatterns);
         $tasks = [];
@@ -56,19 +57,30 @@ final readonly class AssetCompiler
             }
 
             $manager = $this->packageManagers->resolve($workspace);
-            $steps = BuildStepFactory::create($workspace, $manager, $installDependencies);
+            $steps = BuildStepFactory::create($workspace, $manager->manager, $installDependencies);
 
             if ($steps === []) {
                 ++$skipped;
+                if ($explain) {
+                    $this->io->write(sprintf('<comment>%s</comment> skipped: no runnable build steps.', $workspace->name));
+                }
                 continue;
             }
 
             if ($dryRun) {
-                $this->io->write(sprintf('<info>%s</info>', $workspace->name));
+                $this->io->write(
+                    sprintf('<info>%s</info> package manager: %s (%s)', $workspace->name, $manager->manager->name, $manager->reason),
+                );
                 foreach ($steps as $step) {
                     $this->io->write(sprintf('  %s', $step->displayCommand()));
                 }
                 continue;
+            }
+
+            if ($explain) {
+                $this->io->write(
+                    sprintf('<info>%s</info> package manager: %s (%s)', $workspace->name, $manager->manager->name, $manager->reason),
+                );
             }
 
             $tasks[] = new BuildTask($workspace, $hash, $steps);

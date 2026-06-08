@@ -34,7 +34,8 @@ final class CompileAssetsCommand extends BaseCommand
                 'Only process comma-separated package names or fnmatch patterns.',
             )
             ->addOption('no-install', null, InputOption::VALUE_NONE, 'Skip dependency installation.')
-            ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Show planned work without running commands.');
+            ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Show planned work without running commands.')
+            ->addOption('explain', null, InputOption::VALUE_NONE, 'Show package selection and manager resolution details.');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -56,6 +57,7 @@ final class CompileAssetsCommand extends BaseCommand
             packagePatterns: $this->csvOption($input, 'packages'),
             installDependencies: !$input->getOption('no-install'),
             dryRun: $dryRun,
+            explain: (bool) $input->getOption('explain'),
         );
 
         CompilationReporter::write($io, $result, $dryRun);

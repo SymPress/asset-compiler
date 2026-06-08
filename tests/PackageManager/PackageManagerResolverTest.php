@@ -36,7 +36,10 @@ final class PackageManagerResolverTest extends TestCase
             packageManagerFallback: PackageManager::YARN,
         );
 
-        self::assertSame(PackageManager::NPM, $this->resolver()->resolve($workspace)->name);
+        $resolution = $this->resolver()->resolve($workspace);
+
+        self::assertSame(PackageManager::NPM, $resolution->manager->name);
+        self::assertSame('package.json packageManager', $resolution->reason);
     }
 
     public function testSingleNpmLockWinsOverRootFallback(): void
@@ -46,14 +49,20 @@ final class PackageManagerResolverTest extends TestCase
             packageManagerFallback: PackageManager::YARN,
         );
 
-        self::assertSame(PackageManager::NPM, $this->resolver()->resolve($workspace)->name);
+        $resolution = $this->resolver()->resolve($workspace);
+
+        self::assertSame(PackageManager::NPM, $resolution->manager->name);
+        self::assertSame('lock file', $resolution->reason);
     }
 
     public function testRootFallbackIsUsedWhenPackageHasNoManagerSignal(): void
     {
         $workspace = $this->workspace(packageManagerFallback: PackageManager::YARN);
 
-        self::assertSame(PackageManager::YARN, $this->resolver()->resolve($workspace)->name);
+        $resolution = $this->resolver()->resolve($workspace);
+
+        self::assertSame(PackageManager::YARN, $resolution->manager->name);
+        self::assertSame('root fallback', $resolution->reason);
     }
 
     public function testAmbiguousLockFilesUseRootFallback(): void
@@ -63,7 +72,10 @@ final class PackageManagerResolverTest extends TestCase
             packageManagerFallback: PackageManager::YARN,
         );
 
-        self::assertSame(PackageManager::YARN, $this->resolver()->resolve($workspace)->name);
+        $resolution = $this->resolver()->resolve($workspace);
+
+        self::assertSame(PackageManager::YARN, $resolution->manager->name);
+        self::assertSame('root fallback', $resolution->reason);
     }
 
     public function testExplicitPackageConfigWinsOverDetectedSignals(): void
@@ -75,7 +87,10 @@ final class PackageManagerResolverTest extends TestCase
             packageManagerFallback: PackageManager::YARN,
         );
 
-        self::assertSame(PackageManager::PNPM, $this->resolver()->resolve($workspace)->name);
+        $resolution = $this->resolver()->resolve($workspace);
+
+        self::assertSame(PackageManager::PNPM, $resolution->manager->name);
+        self::assertSame('package config', $resolution->reason);
     }
 
     private function resolver(): PackageManagerResolver
