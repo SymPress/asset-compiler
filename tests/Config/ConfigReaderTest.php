@@ -137,6 +137,28 @@ final class ConfigReaderTest extends TestCase
         }
     }
 
+    public function testInvalidPackageConfigFileReportsJsonError(): void
+    {
+        $path = sys_get_temp_dir() . '/sympress_asset_compiler_config_' . bin2hex(random_bytes(8));
+        mkdir($path);
+
+        try {
+            file_put_contents($path . '/asset-compiler.json', '{"script":');
+
+            $this->expectException(InvalidArgumentException::class);
+            $this->expectExceptionMessage('Could not deserialize JSON for asset compiler config file');
+            $this->expectExceptionMessage('Syntax error');
+
+            (new ConfigReader(null, true))->packageExtra(
+                new Package('acme/package', '1.0.0.0', '1.0.0'),
+                $path,
+            );
+        } finally {
+            unlink($path . '/asset-compiler.json');
+            rmdir($path);
+        }
+    }
+
     public function testBuildConfigParsesPrecompiledAssets(): void
     {
         $root = new RootConfig(
