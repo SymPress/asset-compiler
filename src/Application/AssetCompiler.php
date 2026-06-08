@@ -34,8 +34,6 @@ final readonly class AssetCompiler
 
     /**
      * @param list<string> $packagePatterns
-     *
-     * @throws \JsonException
      */
     public function compile(
         string $ignoreLock = '',

@@ -8,6 +8,7 @@ use Composer\IO\IOInterface;
 use Symfony\Component\Finder\Finder;
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
 use SymPress\AssetCompiler\PackageManager\PackageManagerResolution;
+use SymPress\AssetCompiler\Support\JsonData;
 
 final readonly class AssetHasher
 {
@@ -89,7 +90,10 @@ final readonly class AssetHasher
             ),
         ];
 
-        $payload = hash('sha256', json_encode($context, JSON_THROW_ON_ERROR));
+        $payload = hash(
+            'sha256',
+            JsonData::encode($context, sprintf('asset hash context for %s', $workspace->name)),
+        );
 
         foreach ($files as $file) {
             $payload .= hash('sha256', $this->relativePath($workspace, $file));

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SymPress\AssetCompiler\Precompiled;
 
-use JsonException;
 use RuntimeException;
+use SymPress\AssetCompiler\Support\JsonData;
 
 final class Downloader
 {
@@ -41,11 +41,10 @@ final class Downloader
 
         try {
             $this->request($url, $target, $options ?? new DownloadOptions(maxBytes: DownloadOptions::JSON_MAX_BYTES));
-            $decoded = json_decode((string) file_get_contents($target), true, flags: JSON_THROW_ON_ERROR);
-
-            return is_array($decoded) ? self::stringKeyedArray($decoded) : [];
-        } catch (JsonException) {
-            return [];
+            return JsonData::decodeObjectFile(
+                $target,
+                sprintf('precompiled asset JSON response from %s', $url),
+            );
         } finally {
             if (is_file($target)) {
                 unlink($target);
@@ -214,20 +213,4 @@ final class Downloader
         return sprintf('%s://%s/%s/%s', $scheme, $host, trim($path, '/'), ltrim($location, '/'));
     }
 
-    /**
-     * @param array<array-key, mixed> $value
-     * @return array<string, mixed>
-     */
-    private static function stringKeyedArray(array $value): array
-    {
-        $result = [];
-
-        foreach ($value as $key => $item) {
-            if (is_string($key)) {
-                $result[$key] = $item;
-            }
-        }
-
-        return $result;
-    }
 }

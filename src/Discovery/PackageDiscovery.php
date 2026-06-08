@@ -10,11 +10,11 @@ use Composer\Package\Link;
 use Composer\Package\PackageInterface;
 use Composer\Package\RootPackageInterface;
 use Composer\Repository\RepositoryInterface;
-use JsonException;
 use RuntimeException;
 use SymPress\AssetCompiler\Config\BuildConfig;
 use SymPress\AssetCompiler\Config\ConfigReader;
 use SymPress\AssetCompiler\Config\RootConfig;
+use SymPress\AssetCompiler\Support\JsonData;
 
 final readonly class PackageDiscovery
 {
@@ -181,19 +181,11 @@ final readonly class PackageDiscovery
             return [];
         }
 
-        $contents = file_get_contents($file);
-
-        if (!is_string($contents) || trim($contents) === '') {
-            return [];
-        }
-
-        try {
-            $decoded = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
-        } catch (JsonException) {
-            return [];
-        }
-
-        return is_array($decoded) ? self::stringKeyedArray($decoded) : [];
+        return JsonData::decodeObjectFile(
+            $file,
+            sprintf('package manifest "%s"', $file),
+            allowEmpty: true,
+        );
     }
 
     /**
@@ -265,7 +257,7 @@ final readonly class PackageDiscovery
             return new RootPackageSelection(['script' => $raw], false, false, true, $pattern);
         }
 
-        return new RootPackageSelection(is_array($raw) ? self::stringKeyedArray($raw) : null, false, false, true, $pattern);
+        return new RootPackageSelection(is_array($raw) ? JsonData::stringKeyedArray($raw) : null, false, false, true, $pattern);
     }
 
     /**
@@ -350,20 +342,4 @@ final readonly class PackageDiscovery
         return rtrim(preg_replace('~/+~', '/', $path) ?: $path, '/');
     }
 
-    /**
-     * @param array<array-key, mixed> $value
-     * @return array<string, mixed>
-     */
-    private static function stringKeyedArray(array $value): array
-    {
-        $result = [];
-
-        foreach ($value as $key => $item) {
-            if (is_string($key)) {
-                $result[$key] = $item;
-            }
-        }
-
-        return $result;
-    }
 }

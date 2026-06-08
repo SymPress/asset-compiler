@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SymPress\AssetCompiler\Config;
 
+use SymPress\AssetCompiler\Support\JsonData;
+
 final readonly class ModeResolver
 {
     public function __construct(
@@ -29,7 +31,7 @@ final readonly class ModeResolver
         unset($data['$mode'], $data['env']);
 
         /** @var array<string, mixed> $resolved */
-        $resolved = array_replace_recursive($data, self::stringKeyedArray($modeConfig));
+        $resolved = array_replace_recursive($data, JsonData::stringKeyedArray($modeConfig));
 
         return $resolved;
     }
@@ -81,20 +83,4 @@ final readonly class ModeResolver
         return [false, null];
     }
 
-    /**
-     * @param array<array-key, mixed> $value
-     * @return array<string, mixed>
-     */
-    private static function stringKeyedArray(array $value): array
-    {
-        $result = [];
-
-        foreach ($value as $key => $item) {
-            if (is_string($key)) {
-                $result[$key] = $item;
-            }
-        }
-
-        return $result;
-    }
 }
