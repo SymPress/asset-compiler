@@ -106,7 +106,7 @@ final class PackageManagerResolverTest extends TestCase
     private function resolver(): PackageManagerResolver
     {
         return new PackageManagerResolver(
-            static fn (string $name): bool => in_array(
+            static fn(string $name): bool => in_array(
                 $name,
                 [PackageManager::NPM, PackageManager::YARN, PackageManager::PNPM],
                 true,

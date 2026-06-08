@@ -22,6 +22,8 @@
     },
     "require-dev": {
         "composer/composer": "^2.10",
+        "friendsofphp/php-cs-fixer": "^3.89",
+        "phpstan/phpstan": "^2.2",
         "phpunit/phpunit": "^11.5"
     },
     "autoload": {
@@ -33,6 +35,15 @@
         "class": "SymPress\\AssetCompiler\\Composer\\Plugin"
     },
     "scripts": {
+        "check": [
+            "composer validate --no-check-publish",
+            "@analyse",
+            "@cs-check",
+            "@test"
+        ],
+        "analyse": "phpstan analyse --no-progress",
+        "cs-check": "php-cs-fixer fix --dry-run --diff",
+        "cs": "php-cs-fixer fix --diff",
         "test": "phpunit --no-coverage"
     },
     "config": {

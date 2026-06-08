@@ -25,7 +25,7 @@ final readonly class BuildStep
         return implode(
             ' ',
             array_map(
-                static fn (string $part): string => preg_match('/\s/', $part) ? escapeshellarg($part) : $part,
+                static fn(string $part): string => preg_match('/\s/', $part) ? escapeshellarg($part) : $part,
                 $this->command,
             ),
         );

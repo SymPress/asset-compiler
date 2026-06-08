@@ -21,10 +21,10 @@ final class BuildStepFactoryTest extends TestCase
                 dependencyMode: DependencyMode::Install,
                 packageManager: null,
                 packageManagerPreference: null,
-                isolatedCache: false,
                 env: ['APP_ENV' => 'test'],
                 sourcePaths: [],
                 timeout: 120,
+                isolatedCache: false,
             ),
         );
 
@@ -48,10 +48,10 @@ final class BuildStepFactoryTest extends TestCase
                 dependencyMode: DependencyMode::Install,
                 packageManager: null,
                 packageManagerPreference: null,
-                isolatedCache: false,
                 env: [],
                 sourcePaths: [],
                 timeout: 120,
+                isolatedCache: false,
             ),
         );
 
@@ -69,10 +69,10 @@ final class BuildStepFactoryTest extends TestCase
                 dependencyMode: DependencyMode::Install,
                 packageManager: null,
                 packageManagerPreference: null,
-                isolatedCache: true,
                 env: [],
                 sourcePaths: [],
                 timeout: 120,
+                isolatedCache: true,
             ),
         );
 

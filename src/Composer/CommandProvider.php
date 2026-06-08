@@ -9,13 +9,6 @@ use Composer\Plugin\Capability\CommandProvider as CommandProviderCapability;
 final readonly class CommandProvider implements CommandProviderCapability
 {
     /**
-     * @param array<string, mixed> $arguments
-     */
-    public function __construct(private array $arguments = [])
-    {
-    }
-
-    /**
      * @return list<\Composer\Command\BaseCommand>
      */
     public function getCommands(): array

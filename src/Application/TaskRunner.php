@@ -104,8 +104,8 @@ final readonly class TaskRunner
         $failed = 0;
 
         foreach ($tasks as $task) {
-            $sequential = array_values(array_filter($task->steps, static fn (BuildStep $step): bool => !$step->parallel));
-            $parallel = array_values(array_filter($task->steps, static fn (BuildStep $step): bool => $step->parallel));
+            $sequential = array_values(array_filter($task->steps, static fn(BuildStep $step): bool => !$step->parallel));
+            $parallel = array_values(array_filter($task->steps, static fn(BuildStep $step): bool => $step->parallel));
             $cleanupNodeModules = $config->wipeNodeModules && $sequential !== [] && !$this->nodeModulesExists($task);
 
             foreach ($sequential as $step) {
