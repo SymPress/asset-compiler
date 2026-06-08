@@ -11,16 +11,20 @@ use Composer\Package\PackageInterface;
 use Composer\Package\RootPackageInterface;
 use Composer\Repository\RepositoryInterface;
 use RuntimeException;
+use Symfony\Component\Serializer\Encoder\JsonDecode;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
+use Symfony\Component\Serializer\Exception\NotEncodableValueException;
 use SymPress\AssetCompiler\Config\BuildConfig;
 use SymPress\AssetCompiler\Config\ConfigReader;
 use SymPress\AssetCompiler\Config\RootConfig;
-use SymPress\AssetCompiler\Support\JsonData;
 
 final readonly class PackageDiscovery
 {
     private InstallationManager $installationManager;
 
     private RepositoryInterface $repository;
+
+    private JsonEncoder $json;
 
     public function __construct(
         private Composer $composer,
@@ -29,6 +33,10 @@ final readonly class PackageDiscovery
     ) {
         $this->installationManager = $composer->getInstallationManager();
         $this->repository = $composer->getRepositoryManager()->getLocalRepository();
+        $this->json = new JsonEncoder(defaultContext: [
+            JsonDecode::ASSOCIATIVE => true,
+            JsonDecode::OPTIONS => JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR,
+        ]);
     }
 
     /**
@@ -181,11 +189,30 @@ final readonly class PackageDiscovery
             return [];
         }
 
-        return JsonData::decodeObjectFile(
-            $file,
-            sprintf('package manifest "%s"', $file),
-            allowEmpty: true,
-        );
+        $contents = file_get_contents($file);
+
+        if (!is_string($contents)) {
+            throw new RuntimeException(sprintf('Could not read JSON for package manifest "%s".', $file));
+        }
+
+        if (trim($contents) === '') {
+            return [];
+        }
+
+        try {
+            $decoded = $this->json->decode($contents, JsonEncoder::FORMAT);
+        } catch (NotEncodableValueException $exception) {
+            throw new RuntimeException(
+                sprintf('Could not deserialize JSON for package manifest "%s": %s.', $file, $exception->getMessage()),
+                previous: $exception,
+            );
+        }
+
+        if (!str_starts_with(ltrim($contents), '{') || !is_array($decoded)) {
+            throw new RuntimeException(sprintf('Expected JSON object for package manifest "%s".', $file));
+        }
+
+        return self::stringKeyedArray($decoded);
     }
 
     /**
@@ -257,7 +284,7 @@ final readonly class PackageDiscovery
             return new RootPackageSelection(['script' => $raw], false, false, true, $pattern);
         }
 
-        return new RootPackageSelection(is_array($raw) ? JsonData::stringKeyedArray($raw) : null, false, false, true, $pattern);
+        return new RootPackageSelection(is_array($raw) ? self::stringKeyedArray($raw) : null, false, false, true, $pattern);
     }
 
     /**
@@ -340,6 +367,23 @@ final readonly class PackageDiscovery
         $path = str_replace('\\', '/', $path);
 
         return rtrim(preg_replace('~/+~', '/', $path) ?: $path, '/');
+    }
+
+    /**
+     * @param array<array-key, mixed> $value
+     * @return array<string, mixed>
+     */
+    private static function stringKeyedArray(array $value): array
+    {
+        $result = [];
+
+        foreach ($value as $key => $item) {
+            if (is_string($key)) {
+                $result[$key] = $item;
+            }
+        }
+
+        return $result;
     }
 
 }

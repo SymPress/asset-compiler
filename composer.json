@@ -18,7 +18,8 @@
         "ext-zip": "*",
         "symfony/filesystem": "^8.0",
         "symfony/finder": "^8.0",
-        "symfony/process": "^5.4.47 || ^6.4.25 || ^7.1.10 || ^8.0"
+        "symfony/process": "^5.4.47 || ^6.4.25 || ^7.1.10 || ^8.0",
+        "symfony/serializer": "^8.0"
     },
     "require-dev": {
         "composer/composer": "^2.10",

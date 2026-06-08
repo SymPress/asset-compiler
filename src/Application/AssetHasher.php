@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace SymPress\AssetCompiler\Application;
 
 use Composer\IO\IOInterface;
+use RuntimeException;
 use Symfony\Component\Finder\Finder;
+use Symfony\Component\Serializer\Encoder\JsonEncode;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
+use Symfony\Component\Serializer\Exception\NotEncodableValueException;
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
 use SymPress\AssetCompiler\PackageManager\PackageManagerResolution;
-use SymPress\AssetCompiler\Support\JsonData;
 
 final readonly class AssetHasher
 {
@@ -61,8 +64,15 @@ final readonly class AssetHasher
         'templates',
     ];
 
-    public function __construct(private IOInterface $io)
-    {
+    private JsonEncoder $json;
+
+    public function __construct(
+        private IOInterface $io,
+        ?JsonEncoder $json = null,
+    ) {
+        $this->json = $json ?? new JsonEncoder(defaultContext: [
+            JsonEncode::OPTIONS => JSON_THROW_ON_ERROR,
+        ]);
     }
 
     public function hash(PackageWorkspace $workspace, ?PackageManagerResolution $packageManager = null): string
@@ -90,10 +100,16 @@ final readonly class AssetHasher
             ),
         ];
 
-        $payload = hash(
-            'sha256',
-            JsonData::encode($context, sprintf('asset hash context for %s', $workspace->name)),
-        );
+        try {
+            $encodedContext = $this->json->encode($context, JsonEncoder::FORMAT);
+        } catch (NotEncodableValueException $exception) {
+            throw new RuntimeException(
+                sprintf('Could not serialize JSON for asset hash context for %s: %s.', $workspace->name, $exception->getMessage()),
+                previous: $exception,
+            );
+        }
+
+        $payload = hash('sha256', $encodedContext);
 
         foreach ($files as $file) {
             $payload .= hash('sha256', $this->relativePath($workspace, $file));

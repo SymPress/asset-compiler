@@ -5,10 +5,22 @@ declare(strict_types=1);
 namespace SymPress\AssetCompiler\Precompiled;
 
 use RuntimeException;
-use SymPress\AssetCompiler\Support\JsonData;
+use Symfony\Component\Serializer\Encoder\JsonDecode;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
+use Symfony\Component\Serializer\Exception\NotEncodableValueException;
 
 final class Downloader
 {
+    private JsonEncoder $json;
+
+    public function __construct(?JsonEncoder $json = null)
+    {
+        $this->json = $json ?? new JsonEncoder(defaultContext: [
+            JsonDecode::ASSOCIATIVE => true,
+            JsonDecode::OPTIONS => JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR,
+        ]);
+    }
+
     public function download(string $source, string $target, ?DownloadOptions $options = null): void
     {
         $options ??= DownloadOptions::defaults();
@@ -41,10 +53,26 @@ final class Downloader
 
         try {
             $this->request($url, $target, $options ?? new DownloadOptions(maxBytes: DownloadOptions::JSON_MAX_BYTES));
-            return JsonData::decodeObjectFile(
-                $target,
-                sprintf('precompiled asset JSON response from %s', $url),
-            );
+            $contents = file_get_contents($target);
+
+            if (!is_string($contents)) {
+                throw new RuntimeException(sprintf('Could not read JSON for precompiled asset JSON response from %s.', $url));
+            }
+
+            try {
+                $decoded = $this->json->decode($contents, JsonEncoder::FORMAT);
+            } catch (NotEncodableValueException $exception) {
+                throw new RuntimeException(
+                    sprintf('Could not deserialize JSON for precompiled asset JSON response from %s: %s.', $url, $exception->getMessage()),
+                    previous: $exception,
+                );
+            }
+
+            if (!str_starts_with(ltrim($contents), '{') || !is_array($decoded)) {
+                throw new RuntimeException(sprintf('Expected JSON object for precompiled asset JSON response from %s.', $url));
+            }
+
+            return self::stringKeyedArray($decoded);
         } finally {
             if (is_file($target)) {
                 unlink($target);
@@ -211,6 +239,23 @@ final class Downloader
         $path = is_string($parts['path'] ?? null) ? dirname($parts['path']) : '';
 
         return sprintf('%s://%s/%s/%s', $scheme, $host, trim($path, '/'), ltrim($location, '/'));
+    }
+
+    /**
+     * @param array<array-key, mixed> $value
+     * @return array<string, mixed>
+     */
+    private static function stringKeyedArray(array $value): array
+    {
+        $result = [];
+
+        foreach ($value as $key => $item) {
+            if (is_string($key)) {
+                $result[$key] = $item;
+            }
+        }
+
+        return $result;
     }
 
 }

@@ -7,9 +7,10 @@ namespace SymPress\AssetCompiler\Config;
 use Composer\Package\PackageInterface;
 use Composer\Package\RootPackageInterface;
 use InvalidArgumentException;
-use RuntimeException;
+use Symfony\Component\Serializer\Encoder\JsonDecode;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
+use Symfony\Component\Serializer\Exception\NotEncodableValueException;
 use SymPress\AssetCompiler\PackageManager\PackageManager;
-use SymPress\AssetCompiler\Support\JsonData;
 
 final readonly class ConfigReader
 {
@@ -27,9 +28,15 @@ final readonly class ConfigReader
 
     private ModeResolver $modes;
 
+    private JsonEncoder $json;
+
     public function __construct(?string $mode, bool $devMode)
     {
         $this->modes = new ModeResolver($mode, $devMode);
+        $this->json = new JsonEncoder(defaultContext: [
+            JsonDecode::ASSOCIATIVE => true,
+            JsonDecode::OPTIONS => JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR,
+        ]);
     }
 
     public function rootConfig(RootPackageInterface $package, string $rootPath): RootConfig
@@ -112,7 +119,7 @@ final readonly class ConfigReader
             $base = array_replace_recursive($base, $rootOverride);
         }
 
-        $base = $this->modes->root(JsonData::stringKeyedArray($base));
+        $base = $this->modes->root(self::stringKeyedArray($base));
 
         if ($base === [] && !$this->hasBuildScript($packageJson)) {
             return null;
@@ -188,7 +195,7 @@ final readonly class ConfigReader
             return ['script' => $config];
         }
 
-        return is_array($config) ? JsonData::stringKeyedArray($config) : [];
+        return is_array($config) ? self::stringKeyedArray($config) : [];
     }
 
     private function configFile(?string $packagePath): mixed
@@ -204,14 +211,23 @@ final readonly class ConfigReader
                 continue;
             }
 
+            $contents = file_get_contents($file);
+
+            if (!is_string($contents)) {
+                throw new InvalidArgumentException(sprintf('Could not read JSON for asset compiler config file "%s".', $file));
+            }
+
+            if (trim($contents) === '') {
+                return [];
+            }
+
             try {
-                $decoded = JsonData::decodeFile(
-                    $file,
-                    sprintf('asset compiler config file "%s"', $file),
-                    allowEmpty: true,
+                $decoded = $this->json->decode($contents, JsonEncoder::FORMAT);
+            } catch (NotEncodableValueException $exception) {
+                throw new InvalidArgumentException(
+                    sprintf('Could not deserialize JSON for asset compiler config file "%s": %s.', $file, $exception->getMessage()),
+                    previous: $exception,
                 );
-            } catch (RuntimeException $exception) {
-                throw new InvalidArgumentException($exception->getMessage(), previous: $exception);
             }
 
             if (!is_array($decoded)) {
@@ -333,7 +349,7 @@ final readonly class ConfigReader
     {
         $value = $this->modes->property($value);
 
-        return is_array($value) ? JsonData::stringKeyedArray($value) : [];
+        return is_array($value) ? self::stringKeyedArray($value) : [];
     }
 
     /**
@@ -443,7 +459,7 @@ final readonly class ConfigReader
                 adapter: $adapter,
                 source: trim($source),
                 target: is_string($target) && trim($target) !== '' ? trim($target) : 'assets',
-                config: is_array($item['config'] ?? null) ? JsonData::stringKeyedArray($item['config']) : [],
+                config: is_array($item['config'] ?? null) ? self::stringKeyedArray($item['config']) : [],
                 stability: is_string($item['stability'] ?? null) ? strtolower(trim($item['stability'])) : null,
                 checksum: $this->checksum($item),
             );
@@ -465,6 +481,23 @@ final readonly class ConfigReader
         }
 
         return trim($checksum);
+    }
+
+    /**
+     * @param array<array-key, mixed> $value
+     * @return array<string, mixed>
+     */
+    private static function stringKeyedArray(array $value): array
+    {
+        $result = [];
+
+        foreach ($value as $key => $item) {
+            if (is_string($key)) {
+                $result[$key] = $item;
+            }
+        }
+
+        return $result;
     }
 
 }
