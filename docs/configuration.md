@@ -20,7 +20,7 @@ The flat key `extra.sympress.asset-compiler` is also supported. The legacy key `
 
 | Key | Type | Default | Description |
 | --- | --- | --- | --- |
-| `auto-run` | boolean | `false` | Run the compiler after Composer install and update events. |
+| `auto-run` | boolean | `false` | Run the compiler after Composer install and update events. Auto-run uses a late event priority and prints the same compilation summary as the manual command. |
 | `auto-discover` | boolean | `true` | Discover packages with build scripts automatically. |
 | `stop-on-failure` | boolean | `true` | Stop the run after the first failing package. |
 | `max-processes` | integer | `1` | Number of package builds to run in parallel. Values are clamped to `1..8`. |

@@ -29,10 +29,10 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
     {
         return [
             ScriptEvents::POST_INSTALL_CMD => [
-                ['onPostInstall', 0],
+                ['onPostInstall', -1000],
             ],
             ScriptEvents::POST_UPDATE_CMD => [
-                ['onPostUpdate', 0],
+                ['onPostUpdate', -1000],
             ],
         ];
     }
@@ -86,9 +86,15 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
             return;
         }
 
-        $io->write('<info>SymPress Asset Compiler</info> running after Composer operation.');
+        $io->write(
+            sprintf(
+                '<info>SymPress Asset Compiler</info> auto-run after Composer %s.',
+                $this->operationName($event),
+            ),
+        );
 
         $result = $compiler->compile();
+        CompilationReporter::write($io, $result);
 
         if (!$result->successful) {
             throw new \RuntimeException(
@@ -98,6 +104,15 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
                 ),
             );
         }
+    }
+
+    private function operationName(Event $event): string
+    {
+        return match ($event->getName()) {
+            ScriptEvents::POST_INSTALL_CMD => 'install',
+            ScriptEvents::POST_UPDATE_CMD => 'update',
+            default => 'operation',
+        };
     }
 
     public function compiler(?string $mode, bool $devMode): AssetCompiler

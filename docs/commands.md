@@ -32,6 +32,8 @@ composer compile-assets --mode production --no-dev
 composer compile-assets --no-install
 ```
 
+The command summary reports discovered packages, packages that were built or planned, packages already current through build locks, and failures. The same summary is printed when `auto-run` is enabled for Composer install or update events.
+
 ## `assets-hash`
 
 Prints the current build hash for every discovered package. This is useful when debugging why a package is skipped or rebuilt.

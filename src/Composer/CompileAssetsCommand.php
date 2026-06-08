@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SymPress\AssetCompiler\Composer;
 
 use Composer\Command\BaseCommand;
-use Composer\IO\IOInterface;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -51,34 +50,17 @@ final class CompileAssetsCommand extends BaseCommand
             $devMode,
         );
 
+        $dryRun = (bool) $input->getOption('dry-run');
         $result = $compiler->compile(
             ignoreLock: $this->optionalStringOption($input, 'ignore-lock'),
             packagePatterns: $this->csvOption($input, 'packages'),
             installDependencies: !$input->getOption('no-install'),
-            dryRun: (bool) $input->getOption('dry-run'),
+            dryRun: $dryRun,
         );
 
-        $this->writeSummary($io, $result);
+        CompilationReporter::write($io, $result, $dryRun);
 
         return $result->successful ? self::SUCCESS : self::FAILURE;
-    }
-
-    private function writeSummary(IOInterface $io, \SymPress\AssetCompiler\Application\CompilationResult $result): void
-    {
-        if ($result->total === 0) {
-            $io->write('<comment>No asset packages found.</comment>');
-
-            return;
-        }
-
-        $io->write(
-            sprintf(
-                '<info>Asset compilation finished:</info> %d ok, %d skipped, %d failed.',
-                $result->successfulTasks,
-                $result->skipped,
-                $result->failed,
-            ),
-        );
     }
 
     private function stringOption(InputInterface $input, string $name): ?string
