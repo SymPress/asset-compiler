@@ -44,6 +44,7 @@ final readonly class AssetCompiler
         $tasks = [];
         $skipped = 0;
         $precompiled = 0;
+        $position = 0;
 
         foreach ($workspaces as $workspace) {
             $hash = $this->hasher->hash($workspace);
@@ -66,7 +67,13 @@ final readonly class AssetCompiler
             }
 
             $manager = $this->packageManagers->resolve($workspace);
-            $steps = BuildStepFactory::create($workspace, $manager->manager, $installDependencies);
+            $steps = BuildStepFactory::create(
+                $workspace,
+                $manager->manager,
+                $installDependencies,
+                $this->rootConfig->timeoutIncrement * $position,
+            );
+            ++$position;
 
             if ($steps === []) {
                 ++$skipped;

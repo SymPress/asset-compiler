@@ -82,6 +82,26 @@ final class BuildStepFactoryTest extends TestCase
         self::assertStringContainsString('/sympress-asset-compiler/cache/', implode(' ', $steps[0]->command));
     }
 
+    public function testTimeoutIncrementIsAddedToSteps(): void
+    {
+        $workspace = $this->workspace(
+            new BuildConfig(
+                scripts: ['build'],
+                dependencyMode: DependencyMode::Install,
+                packageManager: null,
+                packageManagerFallback: null,
+                env: [],
+                sourcePaths: [],
+                timeout: 120,
+            ),
+        );
+
+        $steps = BuildStepFactory::create($workspace, new PackageManager(PackageManager::NPM), true, 30);
+
+        self::assertSame(150, $steps[0]->timeout);
+        self::assertSame(150, $steps[1]->timeout);
+    }
+
     private function workspace(BuildConfig $config): PackageWorkspace
     {
         return new PackageWorkspace(

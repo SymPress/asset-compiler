@@ -17,9 +17,11 @@ final class BuildStepFactory
         PackageWorkspace $workspace,
         PackageManager $manager,
         bool $installDependencies,
+        int $timeoutIncrement = 0,
     ): array {
         $steps = [];
         $config = $workspace->build;
+        $timeout = $config->timeout + max(0, $timeoutIncrement);
 
         if ($installDependencies && $config->dependencyMode !== DependencyMode::None) {
             $cacheDirectory = $config->isolatedCache ? self::cacheDirectory($workspace) : null;
@@ -30,7 +32,7 @@ final class BuildStepFactory
                     ? $manager->updateCommand($workspace, $cacheDirectory)
                     : $manager->installCommand($workspace, $cacheDirectory),
                 $workspace->path,
-                $config->timeout,
+                $timeout,
                 $config->env,
                 false,
             );
@@ -41,7 +43,7 @@ final class BuildStepFactory
                 sprintf('run %s', $script),
                 $manager->scriptCommand($script),
                 $workspace->path,
-                $config->timeout,
+                $timeout,
                 $config->env,
                 true,
             );
