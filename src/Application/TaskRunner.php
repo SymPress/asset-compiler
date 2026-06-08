@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace SymPress\AssetCompiler\Application;
 
 use Composer\IO\IOInterface;
+use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Process\Process;
 use SymPress\AssetCompiler\Config\RootConfig;
 
 final readonly class TaskRunner
 {
+    private Filesystem $filesystem;
+
     public function __construct(private IOInterface $io)
     {
+        $this->filesystem = new Filesystem();
     }
 
     /**
@@ -83,6 +87,7 @@ final readonly class TaskRunner
             }
         }
 
+        $this->cleanupNodeModules($task);
         $this->io->write(sprintf('<info>%s</info> completed in %.2fs.', $task->workspace->name, microtime(true) - $started));
 
         return true;
@@ -101,6 +106,7 @@ final readonly class TaskRunner
         foreach ($tasks as $task) {
             $sequential = array_values(array_filter($task->steps, static fn (BuildStep $step): bool => !$step->parallel));
             $parallel = array_values(array_filter($task->steps, static fn (BuildStep $step): bool => $step->parallel));
+            $cleanupNodeModules = $config->wipeNodeModules && $sequential !== [] && !$this->nodeModulesExists($task);
 
             foreach ($sequential as $step) {
                 $this->io->write(sprintf('<info>%s</info> %s', $task->workspace->name, $step->label));
@@ -117,12 +123,13 @@ final readonly class TaskRunner
             }
 
             if ($parallel === []) {
+                $this->cleanupNodeModules(new BuildTask($task->workspace, $task->hash, [], $cleanupNodeModules));
                 $successful[] = $task->workspace;
                 $hashes[$task->workspace->name] = $task->hash;
                 continue;
             }
 
-            $parallelTasks[] = new BuildTask($task->workspace, $task->hash, $parallel);
+            $parallelTasks[] = new BuildTask($task->workspace, $task->hash, $parallel, $cleanupNodeModules);
         }
 
         return new PreparedTasks($successful, $hashes, $parallelTasks, $failed);
@@ -209,6 +216,7 @@ final readonly class TaskRunner
                 }
 
                 unset($running[$id]);
+                $this->cleanupNodeModules($task->task);
                 $successful[] = $task->task->workspace;
                 $hashes[$task->task->workspace->name] = $task->task->hash;
                 $this->io->write(
@@ -220,6 +228,25 @@ final readonly class TaskRunner
         }
 
         return new RunnerResult($successful, $hashes, $failed);
+    }
+
+    private function cleanupNodeModules(BuildTask $task): void
+    {
+        if (!$task->cleanupNodeModules) {
+            return;
+        }
+
+        $path = rtrim($task->workspace->path, '/') . '/node_modules';
+
+        if (is_dir($path)) {
+            $this->filesystem->remove($path);
+            $this->io->write(sprintf('<info>%s</info> removed generated node_modules.', $task->workspace->name), true, IOInterface::VERBOSE);
+        }
+    }
+
+    private function nodeModulesExists(BuildTask $task): bool
+    {
+        return is_dir(rtrim($task->workspace->path, '/') . '/node_modules');
     }
 
     private function startTask(RunningTask $task): void

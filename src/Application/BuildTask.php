@@ -15,6 +15,7 @@ final readonly class BuildTask
         public PackageWorkspace $workspace,
         public string $hash,
         public array $steps,
+        public bool $cleanupNodeModules = false,
     ) {
     }
 }
