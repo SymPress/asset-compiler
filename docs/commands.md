@@ -64,8 +64,11 @@ The package manager is resolved in this order:
 
 1. Explicit `package-manager` config.
 2. `packageManager` in `package.json`.
-3. Lock files in the package directory.
-4. `npm` fallback.
+3. Unambiguous lock files in the package directory.
+4. Root `package-manager` fallback.
+5. `npm` fallback.
+
+When multiple lock file families exist in the same package, the lock files are treated as ambiguous. In that case, package config or `package.json` `packageManager` must make the choice explicit, otherwise the root fallback is used.
 
 Install commands:
 

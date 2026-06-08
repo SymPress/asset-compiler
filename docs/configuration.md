@@ -25,7 +25,7 @@ The flat key `extra.sympress.asset-compiler` is also supported. The legacy key `
 | `stop-on-failure` | boolean | `true` | Stop the run after the first failing package. |
 | `max-processes` | integer | `4` | Number of package builds to run in parallel. Values are clamped to `1..8`. |
 | `process-poll` | integer | `100000` | Poll interval in microseconds for parallel process execution. |
-| `package-manager` | string | auto-detected | Project-wide default package manager. Supports `npm`, `yarn`, and `pnpm`. |
+| `package-manager` | string | auto-detected | Project-wide fallback package manager. Supports `npm`, `yarn`, and `pnpm`. Package-level config, `package.json` `packageManager`, and unambiguous lock files still win per package. |
 | `package-types` | string list | WordPress package types | Local path package types considered during auto-discovery. |
 | `default-env` | object | `{}` | Environment variables passed to asset commands. Use `false` to unset a variable. |
 | `defaults` | object | `{}` | Default package build configuration. |
@@ -131,7 +131,7 @@ A package is included when:
 
 The build hash includes:
 
-- Composer package name and package-manager name.
+- Composer package name, explicit package-manager name, and root package-manager fallback.
 - Dependency mode.
 - Configured scripts and environment.
 - `composer.json`, `package.json`, common lock files, and frontend config files.
