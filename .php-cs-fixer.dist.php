@@ -12,6 +12,7 @@ $finder = Finder::create()
 return (new Config())
     ->setRiskyAllowed(false)
     ->setRules([
+        '@PHP8x5Migration' => true,
         '@PER-CS2.0' => true,
         'array_syntax' => ['syntax' => 'short'],
         'no_unused_imports' => true,
