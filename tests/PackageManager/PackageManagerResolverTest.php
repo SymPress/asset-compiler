@@ -18,6 +18,7 @@ final class PackageManagerResolverTest extends TestCase
      */
     private array $workspacePaths = [];
 
+    #[\Override]
     protected function tearDown(): void
     {
         foreach ($this->workspacePaths as $workspacePath) {

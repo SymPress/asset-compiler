@@ -15,11 +15,13 @@ use SymPress\AssetCompiler\Precompiled\ArchiveExtractor;
 use SymPress\AssetCompiler\Precompiled\Downloader;
 use SymPress\AssetCompiler\Precompiled\GitHubAssetLocator;
 use SymPress\AssetCompiler\Precompiled\PrecompiledAssetInstaller;
+use ZipArchive;
 
 final class PrecompiledAssetInstallerTest extends TestCase
 {
     private ?string $workspacePath = null;
 
+    #[\Override]
     protected function tearDown(): void
     {
         if ($this->workspacePath !== null && is_dir($this->workspacePath)) {
@@ -84,8 +86,8 @@ final class PrecompiledAssetInstallerTest extends TestCase
     private function archive(array $files): string
     {
         $archive = $this->workspaceRoot() . '/precompiled.zip';
-        $zip = new \ZipArchive();
-        $zip->open($archive, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        $zip = new ZipArchive();
+        $zip->open($archive, ZipArchive::CREATE | ZipArchive::OVERWRITE);
 
         foreach ($files as $name => $contents) {
             $zip->addFromString($name, $contents);

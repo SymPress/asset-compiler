@@ -14,6 +14,7 @@ final class PackageManagerTest extends TestCase
 {
     private ?string $workspacePath = null;
 
+    #[\Override]
     protected function tearDown(): void
     {
         if ($this->workspacePath !== null && is_dir($this->workspacePath)) {

@@ -20,6 +20,7 @@ final class AssetHasherTest extends TestCase
 {
     private ?string $workspacePath = null;
 
+    #[\Override]
     protected function tearDown(): void
     {
         if ($this->workspacePath !== null) {
