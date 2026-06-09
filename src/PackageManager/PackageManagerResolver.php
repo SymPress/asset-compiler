@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SymPress\AssetCompiler\PackageManager;
 
+use Closure;
+use RuntimeException;
 use Symfony\Component\Process\ExecutableFinder;
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
 
@@ -11,7 +13,7 @@ final class PackageManagerResolver
 {
     private ExecutableFinder $executables;
 
-    private ?\Closure $availability;
+    private ?Closure $availability;
 
     /**
      * @var array<string, bool>
@@ -24,7 +26,7 @@ final class PackageManagerResolver
     public function __construct(?callable $availability = null)
     {
         $this->executables = new ExecutableFinder();
-        $this->availability = $availability !== null ? \Closure::fromCallable($availability) : null;
+        $this->availability = $availability !== null ? Closure::fromCallable($availability) : null;
     }
 
     public function resolve(PackageWorkspace $workspace): PackageManagerResolution
@@ -46,7 +48,7 @@ final class PackageManagerResolver
             }
         }
 
-        throw new \RuntimeException(
+        throw new RuntimeException(
             sprintf(
                 'No supported package manager found for %s. Install npm, yarn, or pnpm.',
                 $workspace->name,
@@ -98,7 +100,7 @@ final class PackageManagerResolver
 
         $managers = array_values(array_unique($managers));
 
-        return count($managers) === 1 ? $managers[0] : null;
+        return count($managers) === 1 ? array_first($managers) : null;
     }
 
     private function normalize(string $name): ?string

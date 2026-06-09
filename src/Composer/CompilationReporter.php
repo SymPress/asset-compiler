@@ -9,6 +9,10 @@ use SymPress\AssetCompiler\Application\CompilationResult;
 
 final class CompilationReporter
 {
+    private function __construct()
+    {
+    }
+
     public static function write(IOInterface $io, CompilationResult $result, bool $dryRun = false): void
     {
         if ($result->total === 0) {

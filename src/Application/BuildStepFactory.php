@@ -10,6 +10,10 @@ use SymPress\AssetCompiler\PackageManager\PackageManager;
 
 final class BuildStepFactory
 {
+    private function __construct()
+    {
+    }
+
     /**
      * @return list<BuildStep>
      */

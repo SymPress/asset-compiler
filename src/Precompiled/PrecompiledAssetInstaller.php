@@ -8,6 +8,7 @@ use Composer\IO\IOInterface;
 use RuntimeException;
 use SymPress\AssetCompiler\Config\PrecompiledAssetConfig;
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
+use Throwable;
 
 final readonly class PrecompiledAssetInstaller
 {
@@ -46,7 +47,7 @@ final readonly class PrecompiledAssetInstaller
                 );
 
                 return true;
-            } catch (\Throwable $throwable) {
+            } catch (Throwable $throwable) {
                 $this->io->writeError(
                     sprintf(
                         '<warning>%s precompiled assets unavailable:</warning> %s',

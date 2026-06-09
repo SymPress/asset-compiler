@@ -43,6 +43,7 @@ final readonly class AssetCompiler
         bool $explain = false,
     ): CompilationResult {
         $workspaces = $this->filteredPackages($packagePatterns);
+        /** @var list<BuildTask> $tasks */
         $tasks = [];
         $skipped = 0;
         $precompiled = 0;
@@ -151,6 +152,7 @@ final readonly class AssetCompiler
      */
     public function hashes(array $packagePatterns = []): array
     {
+        /** @var array<string, string> $hashes */
         $hashes = [];
 
         foreach ($this->filteredPackages($packagePatterns) as $workspace) {

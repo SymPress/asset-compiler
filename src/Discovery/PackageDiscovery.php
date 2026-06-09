@@ -20,6 +20,14 @@ use SymPress\AssetCompiler\Config\RootConfig;
 
 final readonly class PackageDiscovery
 {
+    /**
+     * @var array<string, bool|int>
+     */
+    private const array JSON_CONTEXT = [
+        JsonDecode::ASSOCIATIVE => true,
+        JsonDecode::OPTIONS => JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR,
+    ];
+
     private InstallationManager $installationManager;
 
     private RepositoryInterface $repository;
@@ -33,10 +41,7 @@ final readonly class PackageDiscovery
     ) {
         $this->installationManager = $composer->getInstallationManager();
         $this->repository = $composer->getRepositoryManager()->getLocalRepository();
-        $this->json = new JsonEncoder(defaultContext: [
-            JsonDecode::ASSOCIATIVE => true,
-            JsonDecode::OPTIONS => JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR,
-        ]);
+        $this->json = new JsonEncoder(defaultContext: self::JSON_CONTEXT);
     }
 
     /**
@@ -44,7 +49,9 @@ final readonly class PackageDiscovery
      */
     public function discover(): array
     {
+        /** @var array<string, PackageWorkspace> $workspaces */
         $workspaces = [];
+        /** @var array<string, true> $matchedPatterns */
         $matchedPatterns = [];
         $rootPackage = $this->composer->getPackage();
         $rootWorkspace = $this->workspaceForRootPackage($rootPackage);

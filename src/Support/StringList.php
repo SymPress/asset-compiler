@@ -6,6 +6,10 @@ namespace SymPress\AssetCompiler\Support;
 
 final class StringList
 {
+    private function __construct()
+    {
+    }
+
     /**
      * @return list<string>
      */

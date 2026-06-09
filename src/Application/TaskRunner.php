@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SymPress\AssetCompiler\Application;
 
 use Composer\IO\IOInterface;
+use SplQueue;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Process\Process;
 use SymPress\AssetCompiler\Config\RootConfig;
@@ -53,7 +54,9 @@ final readonly class TaskRunner
      */
     private function runScriptTasksSequentially(array $tasks, RootConfig $config): RunnerResult
     {
+        /** @var list<\SymPress\AssetCompiler\Discovery\PackageWorkspace> $successful */
         $successful = [];
+        /** @var array<string, string> $hashes */
         $hashes = [];
         $failed = 0;
 
@@ -98,8 +101,11 @@ final readonly class TaskRunner
      */
     private function runSequentialSteps(array $tasks, RootConfig $config): PreparedTasks
     {
+        /** @var list<\SymPress\AssetCompiler\Discovery\PackageWorkspace> $successful */
         $successful = [];
+        /** @var array<string, string> $hashes */
         $hashes = [];
+        /** @var list<BuildTask> $parallelTasks */
         $parallelTasks = [];
         $failed = 0;
 
@@ -173,13 +179,17 @@ final readonly class TaskRunner
      */
     private function runInPool(array $tasks, RootConfig $config): RunnerResult
     {
-        $queue = new \SplQueue();
+        /** @var SplQueue<RunningTask> $queue */
+        $queue = new SplQueue();
         foreach ($tasks as $task) {
             $queue->enqueue(new RunningTask($task));
         }
 
+        /** @var array<int, RunningTask> $running */
         $running = [];
+        /** @var list<\SymPress\AssetCompiler\Discovery\PackageWorkspace> $successful */
         $successful = [];
+        /** @var array<string, string> $hashes */
         $hashes = [];
         $failed = 0;
 
