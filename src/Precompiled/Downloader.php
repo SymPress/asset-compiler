@@ -9,16 +9,21 @@ use Symfony\Component\Serializer\Encoder\JsonDecode;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
 use Symfony\Component\Serializer\Exception\NotEncodableValueException;
 
-final class Downloader
+final readonly class Downloader
 {
+    /**
+     * @var array<string, bool|int>
+     */
+    private const array JSON_CONTEXT = [
+        JsonDecode::ASSOCIATIVE => true,
+        JsonDecode::OPTIONS => JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR,
+    ];
+
     private JsonEncoder $json;
 
     public function __construct(?JsonEncoder $json = null)
     {
-        $this->json = $json ?? new JsonEncoder(defaultContext: [
-            JsonDecode::ASSOCIATIVE => true,
-            JsonDecode::OPTIONS => JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR,
-        ]);
+        $this->json = $json ?? new JsonEncoder(defaultContext: self::JSON_CONTEXT);
     }
 
     public function download(string $source, string $target, ?DownloadOptions $options = null): void

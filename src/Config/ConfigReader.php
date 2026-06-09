@@ -17,13 +17,21 @@ final readonly class ConfigReader
     /**
      * @var list<string>
      */
-    private const SUPPORTED_PRECOMPILED_ADAPTERS = [
+    private const array SUPPORTED_PRECOMPILED_ADAPTERS = [
         'archive',
         'zip',
         'github-release',
         'gh-release-zip',
         'github-artifact',
         'gh-action-artifact',
+    ];
+
+    /**
+     * @var array<string, bool|int>
+     */
+    private const array JSON_CONTEXT = [
+        JsonDecode::ASSOCIATIVE => true,
+        JsonDecode::OPTIONS => JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR,
     ];
 
     private ModeResolver $modes;
@@ -33,10 +41,7 @@ final readonly class ConfigReader
     public function __construct(?string $mode, bool $devMode)
     {
         $this->modes = new ModeResolver($mode, $devMode);
-        $this->json = new JsonEncoder(defaultContext: [
-            JsonDecode::ASSOCIATIVE => true,
-            JsonDecode::OPTIONS => JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR,
-        ]);
+        $this->json = new JsonEncoder(defaultContext: self::JSON_CONTEXT);
     }
 
     public function rootConfig(RootPackageInterface $package, string $rootPath): RootConfig

@@ -9,13 +9,13 @@ use SymPress\AssetCompiler\Support\StringList;
 
 final readonly class PackageManager
 {
-    private const YARN_MUTEX = 'file:/tmp/sympress-asset-compiler-yarn.lock';
+    private const string YARN_MUTEX = 'file:/tmp/sympress-asset-compiler-yarn.lock';
 
-    public const NPM = 'npm';
+    public const string NPM = 'npm';
 
-    public const YARN = 'yarn';
+    public const string YARN = 'yarn';
 
-    public const PNPM = 'pnpm';
+    public const string PNPM = 'pnpm';
 
     public function __construct(public string $name)
     {

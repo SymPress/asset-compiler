@@ -6,15 +6,15 @@ namespace SymPress\AssetCompiler\Precompiled;
 
 final readonly class DownloadOptions
 {
-    public const DEFAULT_MAX_BYTES = 104_857_600;
+    public const int DEFAULT_MAX_BYTES = 104_857_600;
 
-    public const JSON_MAX_BYTES = 2_097_152;
+    public const int JSON_MAX_BYTES = 2_097_152;
 
-    private const DEFAULT_TIMEOUT = 300;
+    private const int DEFAULT_TIMEOUT = 300;
 
-    private const DEFAULT_CONNECT_TIMEOUT = 15;
+    private const int DEFAULT_CONNECT_TIMEOUT = 15;
 
-    private const DEFAULT_MAX_REDIRECTS = 5;
+    private const int DEFAULT_MAX_REDIRECTS = 5;
 
     /**
      * @param array<string, string> $headers

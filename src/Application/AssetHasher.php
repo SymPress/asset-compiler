@@ -10,15 +10,24 @@ use Symfony\Component\Finder\Finder;
 use Symfony\Component\Serializer\Encoder\JsonEncode;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
 use Symfony\Component\Serializer\Exception\NotEncodableValueException;
+use SymPress\AssetCompiler\Config\PrecompiledAssetConfig;
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
 use SymPress\AssetCompiler\PackageManager\PackageManagerResolution;
+use Throwable;
 
 final readonly class AssetHasher
 {
     /**
+     * @var array<string, int>
+     */
+    private const array JSON_CONTEXT = [
+        JsonEncode::OPTIONS => JSON_THROW_ON_ERROR,
+    ];
+
+    /**
      * @var list<string>
      */
-    private const DEFAULT_FILES = [
+    private const array DEFAULT_FILES = [
         'composer.json',
         'package.json',
         'package-lock.json',
@@ -49,7 +58,7 @@ final readonly class AssetHasher
     /**
      * @var list<string>
      */
-    private const DEFAULT_DIRECTORIES = [
+    private const array DEFAULT_DIRECTORIES = [
         'resources',
         'src',
         'source',
@@ -70,9 +79,7 @@ final readonly class AssetHasher
         private IOInterface $io,
         ?JsonEncoder $json = null,
     ) {
-        $this->json = $json ?? new JsonEncoder(defaultContext: [
-            JsonEncode::OPTIONS => JSON_THROW_ON_ERROR,
-        ]);
+        $this->json = $json ?? new JsonEncoder(defaultContext: self::JSON_CONTEXT);
     }
 
     public function hash(PackageWorkspace $workspace, ?PackageManagerResolution $packageManager = null): string
@@ -88,7 +95,7 @@ final readonly class AssetHasher
             'scripts' => $workspace->build->scripts,
             'env' => $workspace->build->env,
             'precompiled' => array_map(
-                static fn(\SymPress\AssetCompiler\Config\PrecompiledAssetConfig $config): array => [
+                static fn(PrecompiledAssetConfig $config): array => [
                     'adapter' => $config->adapter,
                     'source' => $config->source,
                     'target' => $config->target,
@@ -193,7 +200,7 @@ final readonly class AssetHasher
                     $files[] = $this->normalizePath($path);
                 }
             }
-        } catch (\Throwable $throwable) {
+        } catch (Throwable $throwable) {
             $this->io->writeError(
                 sprintf('Could not inspect asset source path for %s: %s', $workspace->name, $throwable->getMessage()),
                 true,

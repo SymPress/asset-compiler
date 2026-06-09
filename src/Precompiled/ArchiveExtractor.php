@@ -10,11 +10,11 @@ use ZipArchive;
 
 final readonly class ArchiveExtractor
 {
-    private const MAX_FILES = 20_000;
+    private const int MAX_FILES = 20_000;
 
-    private const MAX_ENTRY_BYTES = 104_857_600;
+    private const int MAX_ENTRY_BYTES = 104_857_600;
 
-    private const MAX_TOTAL_BYTES = 536_870_912;
+    private const int MAX_TOTAL_BYTES = 536_870_912;
 
     public function __construct(private Filesystem $filesystem)
     {

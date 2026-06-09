@@ -6,11 +6,11 @@ namespace SymPress\AssetCompiler\Config;
 
 final readonly class RootConfig
 {
-    public const EXTRA_KEY = 'sympress.asset-compiler';
+    public const string EXTRA_KEY = 'sympress.asset-compiler';
 
-    public const NESTED_EXTRA_KEY = 'asset-compiler';
+    public const string NESTED_EXTRA_KEY = 'asset-compiler';
 
-    public const LEGACY_EXTRA_KEY = 'composer-asset-compiler';
+    public const string LEGACY_EXTRA_KEY = 'composer-asset-compiler';
 
     /**
      * @param array<string, mixed> $defaults

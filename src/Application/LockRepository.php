@@ -8,10 +8,11 @@ use Composer\IO\IOInterface;
 use Symfony\Component\Filesystem\Filesystem;
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
 use SymPress\AssetCompiler\Support\StringList;
+use Throwable;
 
 final readonly class LockRepository
 {
-    private const FILE = '.sympress_asset_compiler.lock';
+    private const string FILE = '.sympress_asset_compiler.lock';
 
     public function __construct(
         private Filesystem $filesystem,
@@ -53,7 +54,7 @@ final readonly class LockRepository
 
         try {
             $this->filesystem->dumpFile($file, $hash . PHP_EOL);
-        } catch (\Throwable $throwable) {
+        } catch (Throwable $throwable) {
             $this->io->writeError(
                 sprintf('Could not write asset compiler lock for %s: %s', $workspace->name, $throwable->getMessage()),
                 true,
