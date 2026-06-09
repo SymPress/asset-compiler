@@ -33,7 +33,7 @@ final class TaskRunnerTest extends TestCase
             new BuildStep('install dependencies', ['php', '-r', 'mkdir("node_modules");'], $workspace->path, 60, [], false),
         ]);
 
-        $result = (new TaskRunner(new BufferIO()))->run([$task], $this->rootConfig(wipeNodeModules: true));
+        $result = new TaskRunner(new BufferIO())->run([$task], $this->rootConfig(wipeNodeModules: true));
 
         self::assertCount(1, $result->successfulWorkspaces);
         self::assertDirectoryDoesNotExist($workspace->path . '/node_modules');
@@ -47,7 +47,7 @@ final class TaskRunnerTest extends TestCase
             new BuildStep('install dependencies', ['php', '-r', 'file_put_contents("node_modules/installed", "yes");'], $workspace->path, 60, [], false),
         ]);
 
-        $result = (new TaskRunner(new BufferIO()))->run([$task], $this->rootConfig(wipeNodeModules: true));
+        $result = new TaskRunner(new BufferIO())->run([$task], $this->rootConfig(wipeNodeModules: true));
 
         self::assertCount(1, $result->successfulWorkspaces);
         self::assertFileExists($workspace->path . '/node_modules/installed');

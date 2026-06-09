@@ -27,7 +27,7 @@ final class PackageManagerTest extends TestCase
     {
         $workspace = $this->workspaceWithFile('package-lock.json');
 
-        self::assertSame(['npm', 'ci'], (new PackageManager(PackageManager::NPM))->installCommand($workspace));
+        self::assertSame(['npm', 'ci'], new PackageManager(PackageManager::NPM)->installCommand($workspace));
     }
 
     public function testNpmAvoidsWritingLockWhenNoLockFileExists(): void
@@ -36,7 +36,7 @@ final class PackageManagerTest extends TestCase
 
         self::assertSame(
             ['npm', 'install', '--no-package-lock'],
-            (new PackageManager(PackageManager::NPM))->installCommand($workspace),
+            new PackageManager(PackageManager::NPM)->installCommand($workspace),
         );
     }
 
@@ -44,7 +44,7 @@ final class PackageManagerTest extends TestCase
     {
         self::assertSame(
             ['npm', 'run', 'build', '--', '--mode', 'production'],
-            (new PackageManager(PackageManager::NPM))->scriptCommand('build -- --mode production'),
+            new PackageManager(PackageManager::NPM)->scriptCommand('build -- --mode production'),
         );
     }
 
@@ -54,7 +54,7 @@ final class PackageManagerTest extends TestCase
 
         self::assertSame(
             ['yarn', 'install', '--mutex', 'file:/tmp/sympress-asset-compiler-yarn.lock'],
-            (new PackageManager(PackageManager::YARN))->installCommand($workspace),
+            new PackageManager(PackageManager::YARN)->installCommand($workspace),
         );
     }
 

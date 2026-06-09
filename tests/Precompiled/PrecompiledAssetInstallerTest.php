@@ -25,7 +25,7 @@ final class PrecompiledAssetInstallerTest extends TestCase
     protected function tearDown(): void
     {
         if ($this->workspacePath !== null && is_dir($this->workspacePath)) {
-            (new Filesystem())->remove($this->workspacePath);
+            new Filesystem()->remove($this->workspacePath);
         }
     }
 

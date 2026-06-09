@@ -24,7 +24,7 @@ final class ConfigReaderTest extends TestCase
             ],
         ]);
 
-        $config = (new ConfigReader(null, true))->rootConfig($package, '/project');
+        $config = new ConfigReader(null, true)->rootConfig($package, '/project');
 
         self::assertTrue($config->autoRun);
         self::assertTrue($config->autoDiscover);
@@ -56,7 +56,7 @@ final class ConfigReaderTest extends TestCase
             env: [],
         );
 
-        $config = (new ConfigReader(null, true))->buildConfig(
+        $config = new ConfigReader(null, true)->buildConfig(
             new Package('acme/package', '1.0.0.0', '1.0.0'),
             $root,
             ['scripts' => ['build' => 'encore production']],
@@ -99,7 +99,7 @@ final class ConfigReaderTest extends TestCase
             ],
         ]);
 
-        $config = (new ConfigReader(null, true))->buildConfig(
+        $config = new ConfigReader(null, true)->buildConfig(
             $package,
             $root,
             ['scripts' => ['build' => 'encore production']],
@@ -129,7 +129,7 @@ final class ConfigReaderTest extends TestCase
 
             self::assertSame(
                 ['script' => 'from-file'],
-                (new ConfigReader(null, true))->packageExtra($package, $path),
+                new ConfigReader(null, true)->packageExtra($package, $path),
             );
         } finally {
             unlink($path . '/asset-compiler.json');
@@ -149,7 +149,7 @@ final class ConfigReaderTest extends TestCase
             $this->expectExceptionMessage('Could not deserialize JSON for asset compiler config file');
             $this->expectExceptionMessage('Syntax error');
 
-            (new ConfigReader(null, true))->packageExtra(
+            new ConfigReader(null, true)->packageExtra(
                 new Package('acme/package', '1.0.0.0', '1.0.0'),
                 $path,
             );
@@ -191,7 +191,7 @@ final class ConfigReaderTest extends TestCase
             ],
         ]);
 
-        $config = (new ConfigReader(null, true))->buildConfig(
+        $config = new ConfigReader(null, true)->buildConfig(
             $package,
             $root,
             ['scripts' => ['build' => 'encore production']],
@@ -218,7 +218,7 @@ final class ConfigReaderTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Unsupported asset compiler root package-manager');
 
-        (new ConfigReader(null, true))->rootConfig($package, '/project');
+        new ConfigReader(null, true)->rootConfig($package, '/project');
     }
 
     public function testRejectsUnsupportedPrecompiledAdapter(): void
@@ -252,6 +252,6 @@ final class ConfigReaderTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Unsupported precompiled asset adapter');
 
-        (new ConfigReader(null, true))->buildConfig($package, $root, ['scripts' => ['build' => 'webpack']], null, false);
+        new ConfigReader(null, true)->buildConfig($package, $root, ['scripts' => ['build' => 'webpack']], null, false);
     }
 }

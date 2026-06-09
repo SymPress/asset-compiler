@@ -24,7 +24,7 @@ final class AssetHasherTest extends TestCase
     protected function tearDown(): void
     {
         if ($this->workspacePath !== null) {
-            (new Filesystem())->remove($this->workspacePath);
+            new Filesystem()->remove($this->workspacePath);
         }
     }
 
@@ -72,7 +72,7 @@ final class AssetHasherTest extends TestCase
         $this->expectExceptionMessage('Could not serialize JSON for asset hash context for vendor/package');
         $this->expectExceptionMessage('Recursion detected');
 
-        (new AssetHasher(new BufferIO()))->hash($workspace);
+        new AssetHasher(new BufferIO())->hash($workspace);
     }
 
     /**
