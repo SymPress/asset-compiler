@@ -12,6 +12,7 @@ use Composer\Plugin\Capable;
 use Composer\Plugin\PluginInterface;
 use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
+use RuntimeException;
 use SymPress\AssetCompiler\Application\AssetCompiler;
 use SymPress\AssetCompiler\Application\CompilerFactory;
 use SymPress\AssetCompiler\Config\RootConfig;
@@ -25,6 +26,7 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
     /**
      * @return array<string, list<array{string, int}>>
      */
+    #[\Override]
     public static function getSubscribedEvents(): array
     {
         return [
@@ -40,6 +42,7 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
     /**
      * @return array<class-string, class-string>
      */
+    #[\Override]
     public function getCapabilities(): array
     {
         return [
@@ -47,16 +50,19 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
         ];
     }
 
+    #[\Override]
     public function activate(Composer $composer, IOInterface $io): void
     {
         $this->composer = $composer;
         $this->io = $io;
     }
 
+    #[\Override]
     public function deactivate(Composer $composer, IOInterface $io): void
     {
     }
 
+    #[\Override]
     public function uninstall(Composer $composer, IOInterface $io): void
     {
     }
@@ -97,7 +103,7 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
         CompilationReporter::write($io, $result);
 
         if (!$result->successful) {
-            throw new \RuntimeException(
+            throw new RuntimeException(
                 sprintf(
                     'Asset compilation failed for %d package(s).',
                     $result->failed,
@@ -118,7 +124,7 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
     public function compiler(?string $mode, bool $devMode): AssetCompiler
     {
         if (!$this->composer instanceof Composer || !$this->io instanceof IOInterface) {
-            throw new \RuntimeException('Composer plugin has not been activated.');
+            throw new RuntimeException('Composer plugin has not been activated.');
         }
 
         return CompilerFactory::create($this->composer, $this->io, $mode, $devMode);

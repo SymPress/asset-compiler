@@ -13,6 +13,7 @@ use SymPress\AssetCompiler\Support\StringList;
 
 final class CompileAssetsCommand extends BaseCommand
 {
+    #[\Override]
     protected function configure(): void
     {
         $this
@@ -39,6 +40,7 @@ final class CompileAssetsCommand extends BaseCommand
             ->addOption('explain', null, InputOption::VALUE_NONE, 'Show package selection and manager resolution details.');
     }
 
+    #[\Override]
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $composer = $this->requireComposer();

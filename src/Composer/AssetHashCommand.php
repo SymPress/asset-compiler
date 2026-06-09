@@ -13,6 +13,7 @@ use SymPress\AssetCompiler\Support\StringList;
 
 final class AssetHashCommand extends BaseCommand
 {
+    #[\Override]
     protected function configure(): void
     {
         $this
@@ -29,6 +30,7 @@ final class AssetHashCommand extends BaseCommand
             );
     }
 
+    #[\Override]
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $compiler = CompilerFactory::create(

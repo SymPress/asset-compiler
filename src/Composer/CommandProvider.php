@@ -11,6 +11,7 @@ final readonly class CommandProvider implements CommandProviderCapability
     /**
      * @return list<\Composer\Command\BaseCommand>
      */
+    #[\Override]
     public function getCommands(): array
     {
         return [
