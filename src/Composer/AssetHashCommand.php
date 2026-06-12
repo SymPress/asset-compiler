@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace SymPress\AssetCompiler\Composer;
 
 use Composer\Command\BaseCommand;
+use SymPress\AssetCompiler\Application\CompilerFactory;
+use SymPress\AssetCompiler\Support\StringList;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use SymPress\AssetCompiler\Application\CompilerFactory;
-use SymPress\AssetCompiler\Support\StringList;
 
 final class AssetHashCommand extends BaseCommand
 {
@@ -62,9 +62,7 @@ final class AssetHashCommand extends BaseCommand
         return is_string($value) && trim($value) !== '' ? trim($value) : null;
     }
 
-    /**
-     * @return list<string>
-     */
+    /** @return list<string> */
     private function csvOption(InputInterface $input, string $name): array
     {
         $value = $input->getOption($name);

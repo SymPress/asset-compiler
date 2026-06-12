@@ -33,8 +33,10 @@ final class CompilationReporter
             ),
         );
 
-        if (!$dryRun && $result->failed === 0 && $result->skipped === $result->total) {
-            $io->write('<comment>All discovered asset packages are already current.</comment>');
+        if ($dryRun || $result->failed !== 0 || $result->skipped !== $result->total) {
+            return;
         }
+
+        $io->write('<comment>All discovered asset packages are already current.</comment>');
     }
 }

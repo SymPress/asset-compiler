@@ -23,9 +23,7 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
 
     private ?IOInterface $io = null;
 
-    /**
-     * @return array<string, list<array{string, int}>>
-     */
+    /** @return array<string, list<array{string, int}>> */
     #[\Override]
     public static function getSubscribedEvents(): array
     {
@@ -33,15 +31,13 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
             ScriptEvents::POST_INSTALL_CMD => [
                 ['onPostInstall', -1000],
             ],
-            ScriptEvents::POST_UPDATE_CMD => [
+            ScriptEvents::POST_UPDATE_CMD  => [
                 ['onPostUpdate', -1000],
             ],
         ];
     }
 
-    /**
-     * @return array<class-string, class-string>
-     */
+    /** @return array<class-string, class-string> */
     #[\Override]
     public function getCapabilities(): array
     {
