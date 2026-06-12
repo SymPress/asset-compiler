@@ -6,8 +6,8 @@ namespace SymPress\AssetCompiler\PackageManager;
 
 use Closure;
 use RuntimeException;
-use Symfony\Component\Process\ExecutableFinder;
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
+use Symfony\Component\Process\ExecutableFinder;
 
 final class PackageManagerResolver
 {
@@ -15,14 +15,10 @@ final class PackageManagerResolver
 
     private ?Closure $availability;
 
-    /**
-     * @var array<string, bool>
-     */
+    /** @var array<string, bool> */
     private array $available = [];
 
-    /**
-     * @param null|callable(string): bool $availability
-     */
+    /** @param callable(string): bool|null $availability */
     public function __construct(?callable $availability = null)
     {
         $this->executables = new ExecutableFinder();
@@ -56,9 +52,7 @@ final class PackageManagerResolver
         );
     }
 
-    /**
-     * @return list<array{?string, string}>
-     */
+    /** @return list<array{?string, string}> */
     private function candidates(PackageWorkspace $workspace): array
     {
         return [

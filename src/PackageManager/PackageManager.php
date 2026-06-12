@@ -21,9 +21,7 @@ final readonly class PackageManager
     {
     }
 
-    /**
-     * @return list<string>
-     */
+    /** @return list<string> */
     public function installCommand(PackageWorkspace $workspace, ?string $cacheDirectory = null): array
     {
         return $this->withCache(match ($this->name) {
@@ -39,9 +37,7 @@ final readonly class PackageManager
         }, $cacheDirectory);
     }
 
-    /**
-     * @return list<string>
-     */
+    /** @return list<string> */
     public function updateCommand(PackageWorkspace $workspace, ?string $cacheDirectory = null): array
     {
         return $this->withCache(match ($this->name) {
@@ -51,9 +47,7 @@ final readonly class PackageManager
         }, $cacheDirectory);
     }
 
-    /**
-     * @return list<string>
-     */
+    /** @return list<string> */
     public function scriptCommand(string $script): array
     {
         [$name, $arguments] = $this->scriptParts($script);
@@ -65,9 +59,7 @@ final readonly class PackageManager
         };
     }
 
-    /**
-     * @return array{string, list<string>}
-     */
+    /** @return array{string, list<string>} */
     private function scriptParts(string $script): array
     {
         $parts = explode(' -- ', $script, 2);
@@ -81,9 +73,7 @@ final readonly class PackageManager
         return [$name, $arguments];
     }
 
-    /**
-     * @return list<string>
-     */
+    /** @return list<string> */
     private function splitArguments(string $arguments): array
     {
         return StringList::fromShellArguments($arguments);
