@@ -11,12 +11,9 @@ use Symfony\Component\Serializer\Exception\NotEncodableValueException;
 
 final readonly class Downloader
 {
-    /**
-     * @var array<string, bool|int>
-     */
     private const array JSON_CONTEXT = [
         JsonDecode::ASSOCIATIVE => true,
-        JsonDecode::OPTIONS => JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR,
+        JsonDecode::OPTIONS     => JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR,
     ];
 
     private JsonEncoder $json;
@@ -45,9 +42,7 @@ final readonly class Downloader
         $this->request($source, $target, $options);
     }
 
-    /**
-     * @return array<string, mixed>
-     */
+    /** @return array<string, mixed> */
     public function json(string $url, ?DownloadOptions $options = null): array
     {
         $target = tempnam(sys_get_temp_dir(), 'sympress_asset_json_');
@@ -108,9 +103,7 @@ final readonly class Downloader
         throw new RuntimeException(sprintf('Too many precompiled asset redirects for %s.', $url));
     }
 
-    /**
-     * @return array{location: string|null}
-     */
+    /** @return array{location: string|null} */
     private function requestOnce(string $url, string $target, DownloadOptions $options, bool $redirected): array
     {
         $handle = curl_init($url);
@@ -139,11 +132,11 @@ final readonly class Downloader
         try {
             curl_setopt_array($handle, [
                 CURLOPT_FOLLOWLOCATION => false,
-                CURLOPT_FAILONERROR => false,
-                CURLOPT_USERAGENT => 'sympress-asset-compiler',
-                CURLOPT_HTTPHEADER => $this->headers($options->headersFor($url, $redirected)),
+                CURLOPT_FAILONERROR    => false,
+                CURLOPT_USERAGENT      => 'sympress-asset-compiler',
+                CURLOPT_HTTPHEADER     => $this->headers($options->headersFor($url, $redirected)),
                 CURLOPT_CONNECTTIMEOUT => $options->connectTimeout,
-                CURLOPT_TIMEOUT => $options->timeout,
+                CURLOPT_TIMEOUT        => $options->timeout,
                 CURLOPT_SSL_VERIFYHOST => 2,
                 CURLOPT_SSL_VERIFYPEER => true,
                 CURLOPT_HEADERFUNCTION => static function ($handle, string $header) use (&$location): int {
@@ -155,7 +148,7 @@ final readonly class Downloader
 
                     return $length;
                 },
-                CURLOPT_WRITEFUNCTION => static function ($handle, string $chunk) use ($file, $options, &$downloadedBytes, &$tooLarge): int {
+                CURLOPT_WRITEFUNCTION  => static function ($handle, string $chunk) use ($file, $options, &$downloadedBytes, &$tooLarge): int {
                     $length = strlen($chunk);
                     $downloadedBytes += $length;
 
@@ -255,12 +248,13 @@ final readonly class Downloader
         $result = [];
 
         foreach ($value as $key => $item) {
-            if (is_string($key)) {
-                $result[$key] = $item;
+            if (!is_string($key)) {
+                continue;
             }
+
+            $result[$key] = $item;
         }
 
         return $result;
     }
-
 }

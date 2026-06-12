@@ -37,9 +37,7 @@ final readonly class DownloadOptions
         return new self();
     }
 
-    /**
-     * @param array<string, string> $headers
-     */
+    /** @param array<string, string> $headers */
     public static function githubApi(array $headers): self
     {
         return new self(
@@ -50,9 +48,7 @@ final readonly class DownloadOptions
         );
     }
 
-    /**
-     * @param array<string, string> $headers
-     */
+    /** @param array<string, string> $headers */
     public static function githubArchive(array $headers): self
     {
         return new self(
@@ -68,9 +64,7 @@ final readonly class DownloadOptions
         );
     }
 
-    /**
-     * @return array<string, string>
-     */
+    /** @return array<string, string> */
     public function headersFor(string $url, bool $redirected): array
     {
         if ($this->headers === []) {
@@ -104,9 +98,7 @@ final readonly class DownloadOptions
         return $this->hostMatches($toUrl, $this->redirectHostPatterns);
     }
 
-    /**
-     * @param list<string> $patterns
-     */
+    /** @param list<string> $patterns */
     private function hostMatches(string $url, array $patterns): bool
     {
         $host = $this->host($url);

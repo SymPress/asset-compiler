@@ -76,11 +76,11 @@ final readonly class GitHubAssetLocator
         [$vendor, $package] = array_pad(explode('/', $workspace->name, 2), 2, '');
 
         return strtr($value, [
-            '${name}' => $workspace->name,
-            '${vendor}' => $vendor,
-            '${package}' => $package,
-            '${version}' => $workspace->version,
-            '${ref}' => $workspace->reference,
+            '${name}'      => $workspace->name,
+            '${vendor}'    => $vendor,
+            '${package}'   => $package,
+            '${version}'   => $workspace->version,
+            '${ref}'       => $workspace->reference,
             '${reference}' => $workspace->reference,
             '${stability}' => $workspace->stability,
         ]);
@@ -97,9 +97,7 @@ final readonly class GitHubAssetLocator
         return trim($repository);
     }
 
-    /**
-     * @return array<string, string>
-     */
+    /** @return array<string, string> */
     private function apiHeaders(PrecompiledAssetConfig $config): array
     {
         $token = $config->config['token'] ?? getenv('GITHUB_TOKEN') ?: getenv('GH_TOKEN');
@@ -112,9 +110,7 @@ final readonly class GitHubAssetLocator
         return $headers;
     }
 
-    /**
-     * @return array<string, string>
-     */
+    /** @return array<string, string> */
     private function archiveHeaders(PrecompiledAssetConfig $config): array
     {
         $token = $config->config['token'] ?? getenv('GITHUB_TOKEN') ?: getenv('GH_TOKEN');
