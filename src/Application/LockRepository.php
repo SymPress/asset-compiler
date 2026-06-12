@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace SymPress\AssetCompiler\Application;
 
 use Composer\IO\IOInterface;
-use Symfony\Component\Filesystem\Filesystem;
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
 use SymPress\AssetCompiler\Support\StringList;
+use Symfony\Component\Filesystem\Filesystem;
 use Throwable;
 
 final readonly class LockRepository
@@ -82,7 +82,7 @@ final readonly class LockRepository
 
         return array_any(
             StringList::fromCsv($ignoreLock),
-            static fn(string $pattern): bool => $pattern === $packageName
+            static fn (string $pattern): bool => $pattern === $packageName
                 || fnmatch($pattern, $packageName, FNM_PATHNAME | FNM_PERIOD | FNM_CASEFOLD),
         );
     }

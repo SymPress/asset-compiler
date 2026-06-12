@@ -7,7 +7,6 @@ namespace SymPress\AssetCompiler\Application;
 use Composer\Composer;
 use Composer\Factory as ComposerFactory;
 use Composer\IO\IOInterface;
-use Symfony\Component\Filesystem\Filesystem;
 use SymPress\AssetCompiler\Config\ConfigReader;
 use SymPress\AssetCompiler\Discovery\PackageDiscovery;
 use SymPress\AssetCompiler\PackageManager\PackageManagerResolver;
@@ -15,6 +14,7 @@ use SymPress\AssetCompiler\Precompiled\ArchiveExtractor;
 use SymPress\AssetCompiler\Precompiled\Downloader;
 use SymPress\AssetCompiler\Precompiled\GitHubAssetLocator;
 use SymPress\AssetCompiler\Precompiled\PrecompiledAssetInstaller;
+use Symfony\Component\Filesystem\Filesystem;
 
 final class CompilerFactory
 {
@@ -24,6 +24,7 @@ final class CompilerFactory
         ?string $mode,
         bool $devMode,
     ): AssetCompiler {
+
         $filesystem = new Filesystem();
         $rootPath = self::rootPath($composer);
         $reader = new ConfigReader($mode ?? self::modeFromEnvironment(), $devMode);

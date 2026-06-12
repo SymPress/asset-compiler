@@ -32,9 +32,7 @@ final readonly class AssetCompiler
         return $this->rootConfig;
     }
 
-    /**
-     * @param list<string> $packagePatterns
-     */
+    /** @param list<string> $packagePatterns */
     public function compile(
         string $ignoreLock = '',
         array $packagePatterns = [],
@@ -42,6 +40,7 @@ final readonly class AssetCompiler
         bool $dryRun = false,
         bool $explain = false,
     ): CompilationResult {
+
         $workspaces = $this->filteredPackages($packagePatterns);
         /** @var list<BuildTask> $tasks */
         $tasks = [];
@@ -133,9 +132,11 @@ final readonly class AssetCompiler
 
         foreach ($result->successfulWorkspaces as $workspace) {
             $hash = $result->hashes[$workspace->name] ?? null;
-            if (is_string($hash) && $hash !== '') {
-                $this->locks->write($workspace, $hash);
+            if (!is_string($hash) || $hash === '') {
+                continue;
             }
+
+            $this->locks->write($workspace, $hash);
         }
 
         return new CompilationResult(
@@ -179,7 +180,7 @@ final readonly class AssetCompiler
         return array_values(
             array_filter(
                 $workspaces,
-                static fn(PackageWorkspace $workspace): bool => self::matchesAny(
+                static fn (PackageWorkspace $workspace): bool => self::matchesAny(
                     $workspace->name,
                     $packagePatterns,
                 ),
@@ -187,14 +188,12 @@ final readonly class AssetCompiler
         );
     }
 
-    /**
-     * @param list<string> $patterns
-     */
+    /** @param list<string> $patterns */
     private static function matchesAny(string $name, array $patterns): bool
     {
         return array_any(
             $patterns,
-            static fn(string $pattern): bool => $pattern === $name
+            static fn (string $pattern): bool => $pattern === $name
                 || fnmatch($pattern, $name, FNM_PATHNAME | FNM_PERIOD | FNM_CASEFOLD),
         );
     }
@@ -217,8 +216,10 @@ final readonly class AssetCompiler
             $workspace->build->precompiledAssets === [] ? '' : sprintf(', precompiled: %d configured', count($workspace->build->precompiledAssets)),
         ));
 
-        if ($manager instanceof PackageManagerResolution) {
-            $this->io->write(sprintf('  package manager: %s (%s)', $manager->manager->name, $manager->reason));
+        if (!($manager instanceof PackageManagerResolution)) {
+            return;
         }
+
+        $this->io->write(sprintf('  package manager: %s (%s)', $manager->manager->name, $manager->reason));
     }
 }

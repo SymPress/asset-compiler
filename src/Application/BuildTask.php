@@ -8,9 +8,7 @@ use SymPress\AssetCompiler\Discovery\PackageWorkspace;
 
 final readonly class BuildTask
 {
-    /**
-     * @param list<BuildStep> $steps
-     */
+    /** @param list<BuildStep> $steps */
     public function __construct(
         public PackageWorkspace $workspace,
         public string $hash,

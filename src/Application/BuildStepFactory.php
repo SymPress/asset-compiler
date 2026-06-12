@@ -14,15 +14,14 @@ final class BuildStepFactory
     {
     }
 
-    /**
-     * @return list<BuildStep>
-     */
+    /** @return list<BuildStep> */
     public static function create(
         PackageWorkspace $workspace,
         PackageManager $manager,
         bool $installDependencies,
         int $timeoutIncrement = 0,
     ): array {
+
         $steps = [];
         $config = $workspace->build;
         $timeout = $config->timeout + max(0, $timeoutIncrement);

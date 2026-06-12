@@ -6,27 +6,21 @@ namespace SymPress\AssetCompiler\Application;
 
 use Composer\IO\IOInterface;
 use RuntimeException;
+use SymPress\AssetCompiler\Config\PrecompiledAssetConfig;
+use SymPress\AssetCompiler\Discovery\PackageWorkspace;
+use SymPress\AssetCompiler\PackageManager\PackageManagerResolution;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Serializer\Encoder\JsonEncode;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
 use Symfony\Component\Serializer\Exception\NotEncodableValueException;
-use SymPress\AssetCompiler\Config\PrecompiledAssetConfig;
-use SymPress\AssetCompiler\Discovery\PackageWorkspace;
-use SymPress\AssetCompiler\PackageManager\PackageManagerResolution;
 use Throwable;
 
 final readonly class AssetHasher
 {
-    /**
-     * @var array<string, int>
-     */
     private const array JSON_CONTEXT = [
         JsonEncode::OPTIONS => JSON_THROW_ON_ERROR,
     ];
 
-    /**
-     * @var list<string>
-     */
     private const array DEFAULT_FILES = [
         'composer.json',
         'package.json',
@@ -55,9 +49,6 @@ final readonly class AssetHasher
         'browserslist',
     ];
 
-    /**
-     * @var list<string>
-     */
     private const array DEFAULT_DIRECTORIES = [
         'resources',
         'src',
@@ -79,6 +70,7 @@ final readonly class AssetHasher
         private IOInterface $io,
         ?JsonEncoder $json = null,
     ) {
+
         $this->json = $json ?? new JsonEncoder(defaultContext: self::JSON_CONTEXT);
     }
 
@@ -86,22 +78,22 @@ final readonly class AssetHasher
     {
         $files = $this->files($workspace);
         $context = [
-            'package' => $workspace->name,
-            'manager' => $workspace->build->packageManager,
-            'manager-preference' => $workspace->build->packageManagerPreference,
-            'resolved-manager' => $packageManager?->manager->name,
+            'package'                 => $workspace->name,
+            'manager'                 => $workspace->build->packageManager,
+            'manager-preference'      => $workspace->build->packageManagerPreference,
+            'resolved-manager'        => $packageManager?->manager->name,
             'resolved-manager-reason' => $packageManager?->reason,
-            'dependencies' => $workspace->build->dependencyMode->value,
-            'scripts' => $workspace->build->scripts,
-            'env' => $workspace->build->env,
-            'precompiled' => array_map(
-                static fn(PrecompiledAssetConfig $config): array => [
-                    'adapter' => $config->adapter,
-                    'source' => $config->source,
-                    'target' => $config->target,
-                    'config' => $config->config,
+            'dependencies'            => $workspace->build->dependencyMode->value,
+            'scripts'                 => $workspace->build->scripts,
+            'env'                     => $workspace->build->env,
+            'precompiled'             => array_map(
+                static fn (PrecompiledAssetConfig $config): array => [
+                    'adapter'   => $config->adapter,
+                    'source'    => $config->source,
+                    'target'    => $config->target,
+                    'config'    => $config->config,
                     'stability' => $config->stability,
-                    'checksum' => $config->checksum,
+                    'checksum'  => $config->checksum,
                 ],
                 $workspace->build->precompiledAssets,
             ),
@@ -126,9 +118,7 @@ final readonly class AssetHasher
         return hash('sha256', $payload);
     }
 
-    /**
-     * @return list<string>
-     */
+    /** @return list<string> */
     private function files(PackageWorkspace $workspace): array
     {
         $paths = $workspace->build->sourcePaths;
@@ -149,9 +139,7 @@ final readonly class AssetHasher
         return $files;
     }
 
-    /**
-     * @param list<string> $files
-     */
+    /** @param list<string> $files */
     private function collectPath(PackageWorkspace $workspace, string $path, array &$files): void
     {
         $base = rtrim($workspace->path, '/');
@@ -169,9 +157,7 @@ final readonly class AssetHasher
         $this->collectAbsolute($workspace, $absolute, $files);
     }
 
-    /**
-     * @param list<string> $files
-     */
+    /** @param list<string> $files */
     private function collectAbsolute(PackageWorkspace $workspace, string $absolute, array &$files): void
     {
         if (is_file($absolute) && is_readable($absolute)) {
@@ -196,9 +182,11 @@ final readonly class AssetHasher
             foreach ($finder as $file) {
                 $path = $file->getRealPath();
 
-                if (is_string($path)) {
-                    $files[] = $this->normalizePath($path);
+                if (!is_string($path)) {
+                    continue;
                 }
+
+                $files[] = $this->normalizePath($path);
             }
         } catch (Throwable $throwable) {
             $this->io->writeError(

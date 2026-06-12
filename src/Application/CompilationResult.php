@@ -14,6 +14,7 @@ final readonly class CompilationResult
         public int $skipped,
         public int $failed,
     ) {
+
         $this->successful = $failed === 0;
     }
 }
