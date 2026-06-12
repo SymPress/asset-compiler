@@ -11,21 +11,18 @@ use Composer\Package\PackageInterface;
 use Composer\Package\RootPackageInterface;
 use Composer\Repository\RepositoryInterface;
 use RuntimeException;
-use Symfony\Component\Serializer\Encoder\JsonDecode;
-use Symfony\Component\Serializer\Encoder\JsonEncoder;
-use Symfony\Component\Serializer\Exception\NotEncodableValueException;
 use SymPress\AssetCompiler\Config\BuildConfig;
 use SymPress\AssetCompiler\Config\ConfigReader;
 use SymPress\AssetCompiler\Config\RootConfig;
+use Symfony\Component\Serializer\Encoder\JsonDecode;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
+use Symfony\Component\Serializer\Exception\NotEncodableValueException;
 
 final readonly class PackageDiscovery
 {
-    /**
-     * @var array<string, bool|int>
-     */
     private const array JSON_CONTEXT = [
         JsonDecode::ASSOCIATIVE => true,
-        JsonDecode::OPTIONS => JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR,
+        JsonDecode::OPTIONS     => JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR,
     ];
 
     private InstallationManager $installationManager;
@@ -39,14 +36,13 @@ final readonly class PackageDiscovery
         private ConfigReader $configReader,
         private RootConfig $rootConfig,
     ) {
+
         $this->installationManager = $composer->getInstallationManager();
         $this->repository = $composer->getRepositoryManager()->getLocalRepository();
         $this->json = new JsonEncoder(defaultContext: self::JSON_CONTEXT);
     }
 
-    /**
-     * @return list<PackageWorkspace>
-     */
+    /** @return list<PackageWorkspace> */
     public function discover(): array
     {
         /** @var array<string, PackageWorkspace> $workspaces */
@@ -107,7 +103,7 @@ final readonly class PackageDiscovery
 
         usort(
             $workspaces,
-            static fn(PackageWorkspace $left, PackageWorkspace $right): int => strcasecmp($left->name, $right->name),
+            static fn (PackageWorkspace $left, PackageWorkspace $right): int => strcasecmp($left->name, $right->name),
         );
 
         return $workspaces;
@@ -185,9 +181,7 @@ final readonly class PackageDiscovery
         return $package->getStability();
     }
 
-    /**
-     * @return array<string, mixed>
-     */
+    /** @return array<string, mixed> */
     private function packageJson(string $path): array
     {
         $file = rtrim($path, '/') . '/package.json';
@@ -222,14 +216,13 @@ final readonly class PackageDiscovery
         return self::stringKeyedArray($decoded);
     }
 
-    /**
-     * @param array<string, mixed> $packageJson
-     */
+    /** @param array<string, mixed> $packageJson */
     private function shouldInspect(
         PackageInterface $package,
         array $packageJson,
         ?RootPackageSelection $selection,
     ): bool {
+
         if ($selection?->disabled) {
             return false;
         }
@@ -294,9 +287,7 @@ final readonly class PackageDiscovery
         return new RootPackageSelection(is_array($raw) ? self::stringKeyedArray($raw) : null, false, false, true, $pattern);
     }
 
-    /**
-     * @param array<string, bool> $matchedPatterns
-     */
+    /** @param array<string, bool> $matchedPatterns */
     private function assertRequiredPackagesWereFound(array $matchedPatterns): void
     {
         if (!$this->rootConfig->stopOnFailure) {
@@ -314,9 +305,11 @@ final readonly class PackageDiscovery
                 continue;
             }
 
-            if (!isset($matchedPatterns[$pattern])) {
-                $missing[] = $pattern;
+            if (isset($matchedPatterns[$pattern])) {
+                continue;
             }
+
+            $missing[] = $pattern;
         }
 
         if ($missing === []) {
@@ -328,9 +321,7 @@ final readonly class PackageDiscovery
         );
     }
 
-    /**
-     * @param array<string, mixed> $packageJson
-     */
+    /** @param array<string, mixed> $packageJson */
     private function hasBuildScript(array $packageJson): bool
     {
         $scripts = $packageJson['scripts'] ?? null;
@@ -342,7 +333,7 @@ final readonly class PackageDiscovery
     {
         return array_any(
             $package->getRequires(),
-            static fn(Link $link): bool => $link->getTarget() === 'sympress/assets',
+            static fn (Link $link): bool => $link->getTarget() === 'sympress/assets',
         );
     }
 
@@ -385,12 +376,13 @@ final readonly class PackageDiscovery
         $result = [];
 
         foreach ($value as $key => $item) {
-            if (is_string($key)) {
-                $result[$key] = $item;
+            if (!is_string($key)) {
+                continue;
             }
+
+            $result[$key] = $item;
         }
 
         return $result;
     }
-
 }

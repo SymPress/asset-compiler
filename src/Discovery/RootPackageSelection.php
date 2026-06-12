@@ -6,9 +6,7 @@ namespace SymPress\AssetCompiler\Discovery;
 
 final readonly class RootPackageSelection
 {
-    /**
-     * @param array<string, mixed>|null $override
-     */
+    /** @param array<string, mixed>|null $override */
     public function __construct(
         public ?array $override,
         public bool $forceDefaults,

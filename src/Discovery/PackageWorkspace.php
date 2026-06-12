@@ -8,9 +8,7 @@ use SymPress\AssetCompiler\Config\BuildConfig;
 
 final readonly class PackageWorkspace
 {
-    /**
-     * @param array<string, mixed> $packageJson
-     */
+    /** @param array<string, mixed> $packageJson */
     public function __construct(
         public string $name,
         public string $type,
