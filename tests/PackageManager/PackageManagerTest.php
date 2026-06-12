@@ -17,10 +17,12 @@ final class PackageManagerTest extends TestCase
     #[\Override]
     protected function tearDown(): void
     {
-        if ($this->workspacePath !== null && is_dir($this->workspacePath)) {
-            array_map('unlink', glob($this->workspacePath . '/*') ?: []);
-            rmdir($this->workspacePath);
+        if ($this->workspacePath === null || !is_dir($this->workspacePath)) {
+            return;
         }
+
+        array_map('unlink', glob($this->workspacePath . '/*') ?: []);
+        rmdir($this->workspacePath);
     }
 
     public function testNpmUsesCiWhenLockFileExists(): void

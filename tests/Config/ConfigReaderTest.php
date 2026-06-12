@@ -19,7 +19,7 @@ final class ConfigReaderTest extends TestCase
         $package = new RootPackage('acme/root', '1.0.0.0', '1.0.0');
         $package->setExtra([
             RootConfig::EXTRA_KEY => [
-                'auto-run' => true,
+                'auto-run'        => true,
                 'package-manager' => 'yarn',
             ],
         ]);
@@ -180,13 +180,13 @@ final class ConfigReaderTest extends TestCase
         $package = new Package('acme/package', '1.0.0.0', '1.0.0');
         $package->setExtra([
             RootConfig::EXTRA_KEY => [
-                'script' => 'build',
+                'script'       => 'build',
                 'pre-compiled' => [
-                    'adapter' => 'archive',
-                    'source' => 'https://example.test/assets-${version}.zip',
-                    'target' => 'assets',
+                    'adapter'   => 'archive',
+                    'source'    => 'https://example.test/assets-${version}.zip',
+                    'target'    => 'assets',
                     'stability' => 'stable',
-                    'config' => ['clean-target' => false],
+                    'config'    => ['clean-target' => false],
                 ],
             ],
         ]);
@@ -244,7 +244,7 @@ final class ConfigReaderTest extends TestCase
             RootConfig::EXTRA_KEY => [
                 'precompiled' => [
                     'adapter' => 'tar',
-                    'source' => 'assets.tar',
+                    'source'  => 'assets.tar',
                 ],
             ],
         ]);

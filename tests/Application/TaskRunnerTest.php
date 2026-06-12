@@ -21,9 +21,11 @@ final class TaskRunnerTest extends TestCase
     #[\Override]
     protected function tearDown(): void
     {
-        if ($this->workspacePath !== null && is_dir($this->workspacePath)) {
-            $this->removeDirectory($this->workspacePath);
+        if ($this->workspacePath === null || !is_dir($this->workspacePath)) {
+            return;
         }
+
+        $this->removeDirectory($this->workspacePath);
     }
 
     public function testRemovesNodeModulesCreatedByDependencyStep(): void

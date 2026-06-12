@@ -7,7 +7,6 @@ namespace SymPress\AssetCompiler\Tests\Application;
 use Composer\IO\BufferIO;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
-use Symfony\Component\Filesystem\Filesystem;
 use SymPress\AssetCompiler\Application\AssetHasher;
 use SymPress\AssetCompiler\Config\BuildConfig;
 use SymPress\AssetCompiler\Config\DependencyMode;
@@ -15,6 +14,7 @@ use SymPress\AssetCompiler\Config\PrecompiledAssetConfig;
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
 use SymPress\AssetCompiler\PackageManager\PackageManager;
 use SymPress\AssetCompiler\PackageManager\PackageManagerResolution;
+use Symfony\Component\Filesystem\Filesystem;
 
 final class AssetHasherTest extends TestCase
 {
@@ -23,9 +23,11 @@ final class AssetHasherTest extends TestCase
     #[\Override]
     protected function tearDown(): void
     {
-        if ($this->workspacePath !== null) {
-            new Filesystem()->remove($this->workspacePath);
+        if ($this->workspacePath === null) {
+            return;
         }
+
+        new Filesystem()->remove($this->workspacePath);
     }
 
     public function testResolvedPackageManagerInvalidatesHash(): void
@@ -75,9 +77,7 @@ final class AssetHasherTest extends TestCase
         new AssetHasher(new BufferIO())->hash($workspace);
     }
 
-    /**
-     * @param list<PrecompiledAssetConfig> $precompiledAssets
-     */
+    /** @param list<PrecompiledAssetConfig> $precompiledAssets */
     private function workspace(array $precompiledAssets = []): PackageWorkspace
     {
         $this->workspacePath = sys_get_temp_dir() . '/sympress_asset_compiler_hasher_' . bin2hex(random_bytes(8));

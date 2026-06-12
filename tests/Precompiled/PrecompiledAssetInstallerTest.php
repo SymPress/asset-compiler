@@ -6,7 +6,6 @@ namespace SymPress\AssetCompiler\Tests\Precompiled;
 
 use Composer\IO\BufferIO;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Filesystem\Filesystem;
 use SymPress\AssetCompiler\Config\BuildConfig;
 use SymPress\AssetCompiler\Config\DependencyMode;
 use SymPress\AssetCompiler\Config\PrecompiledAssetConfig;
@@ -15,6 +14,7 @@ use SymPress\AssetCompiler\Precompiled\ArchiveExtractor;
 use SymPress\AssetCompiler\Precompiled\Downloader;
 use SymPress\AssetCompiler\Precompiled\GitHubAssetLocator;
 use SymPress\AssetCompiler\Precompiled\PrecompiledAssetInstaller;
+use Symfony\Component\Filesystem\Filesystem;
 use ZipArchive;
 
 final class PrecompiledAssetInstallerTest extends TestCase
@@ -24,9 +24,11 @@ final class PrecompiledAssetInstallerTest extends TestCase
     #[\Override]
     protected function tearDown(): void
     {
-        if ($this->workspacePath !== null && is_dir($this->workspacePath)) {
-            new Filesystem()->remove($this->workspacePath);
+        if ($this->workspacePath === null || !is_dir($this->workspacePath)) {
+            return;
         }
+
+        new Filesystem()->remove($this->workspacePath);
     }
 
     public function testInstallsLocalZipArchive(): void
@@ -80,9 +82,7 @@ final class PrecompiledAssetInstallerTest extends TestCase
         );
     }
 
-    /**
-     * @param array<string, string> $files
-     */
+    /** @param array<string, string> $files */
     private function archive(array $files): string
     {
         $archive = $this->workspaceRoot() . '/precompiled.zip';

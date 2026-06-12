@@ -10,9 +10,7 @@ use SymPress\AssetCompiler\Config\DependencyMode;
 
 final class DependencyModeTest extends TestCase
 {
-    /**
-     * @return iterable<string, array{mixed, DependencyMode}>
-     */
+    /** @return iterable<string, array{mixed, DependencyMode}> */
     public static function values(): iterable
     {
         yield 'install' => ['install', DependencyMode::Install];

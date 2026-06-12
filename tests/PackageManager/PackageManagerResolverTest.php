@@ -13,9 +13,7 @@ use SymPress\AssetCompiler\PackageManager\PackageManagerResolver;
 
 final class PackageManagerResolverTest extends TestCase
 {
-    /**
-     * @var list<string>
-     */
+    /** @var list<string> */
     private array $workspacePaths = [];
 
     #[\Override]
@@ -107,7 +105,7 @@ final class PackageManagerResolverTest extends TestCase
     private function resolver(): PackageManagerResolver
     {
         return new PackageManagerResolver(
-            static fn(string $name): bool => in_array(
+            static fn (string $name): bool => in_array(
                 $name,
                 [PackageManager::NPM, PackageManager::YARN, PackageManager::PNPM],
                 true,
@@ -125,6 +123,7 @@ final class PackageManagerResolverTest extends TestCase
         array $files = [],
         ?string $packageManagerPreference = null,
     ): PackageWorkspace {
+
         $path = sys_get_temp_dir() . '/sympress_asset_compiler_resolver_' . bin2hex(random_bytes(8));
         mkdir($path);
         $this->workspacePaths[] = $path;

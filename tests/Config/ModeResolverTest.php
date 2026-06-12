@@ -17,7 +17,7 @@ final class ModeResolverTest extends TestCase
             'build:production',
             $resolver->property([
                 '$mode' => [
-                    '$default' => 'build',
+                    '$default'   => 'build',
                     'production' => 'build:production',
                 ],
             ]),
