@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<ruleset name="SymPress Asset Compiler">
+    <description>
+        SymPress coding standard audit for the asset compiler package.
+    </description>
+
+    <arg name="colors" />
+    <arg value="sp" />
+    <arg name="basepath" value="." />
+
+    <config name="testVersion" value="8.5-" />
+
+    <file>src</file>
+    <file>tests</file>
+
+    <exclude-pattern>vendor/*</exclude-pattern>
+    <exclude-pattern>.phpunit.cache/*</exclude-pattern>
+
+    <rule ref="SymPress-Pure">
+        <exclude name="SlevomatCodingStandard.Classes.ForbiddenPublicProperty.ForbiddenPublicProperty" />
+        <exclude name="SlevomatCodingStandard.ControlStructures.UselessIfConditionWithReturn.UselessIfCondition" />
+        <exclude name="SlevomatCodingStandard.Functions.UnusedParameter.UnusedParameter" />
+        <exclude name="SymPress.Classes.AccessorNaming.GetterRequired" />
+        <exclude name="SymPress.Complexity.NestingLevel.High" />
+        <exclude name="SymPress.Files.LineLength.TooLong" />
+        <exclude name="SymPress.Functions.ArgumentTypeDeclaration.NoArgumentType" />
+        <exclude name="SymPress.Functions.FunctionLength.TooLong" />
+        <exclude name="SymPress.Variables.RedundantAssignment.Found" />
+    </rule>
+</ruleset>

@@ -25,7 +25,8 @@
         "composer/composer": "^2.10",
         "friendsofphp/php-cs-fixer": "^3.89",
         "phpstan/phpstan": "^2.2",
-        "phpunit/phpunit": "^11.5"
+        "phpunit/phpunit": "^11.5",
+        "sympress/coding-standards": "@dev"
     },
     "autoload": {
         "psr-4": {
@@ -36,21 +37,44 @@
         "class": "SymPress\\AssetCompiler\\Composer\\Plugin"
     },
     "scripts": {
-        "check": [
-            "composer validate --no-check-publish",
-            "@analyse",
-            "@cs-check",
-            "@test"
+        "cs": [
+            "Composer\\Config::disableProcessTimeout",
+            "@php ../../bin/package-quality.php cs"
         ],
-        "analyse": "phpstan analyse --no-progress",
-        "cs-check": "php-cs-fixer fix --dry-run --diff",
-        "cs": "php-cs-fixer fix --diff",
-        "test": "phpunit --no-coverage"
+        "cs:fix": [
+            "Composer\\Config::disableProcessTimeout",
+            "@php ../../bin/package-quality.php cs:fix"
+        ],
+        "static-analysis": [
+            "Composer\\Config::disableProcessTimeout",
+            "@php ../../bin/package-quality.php static-analysis"
+        ],
+        "tests": [
+            "Composer\\Config::disableProcessTimeout",
+            "@php ../../bin/package-quality.php tests"
+        ],
+        "qa": [
+            "@cs",
+            "@static-analysis",
+            "@tests"
+        ]
     },
     "config": {
         "sort-packages": true,
-        "optimize-autoloader": true
+        "optimize-autoloader": true,
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
     },
     "minimum-stability": "dev",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "repositories": [
+        {
+            "type": "path",
+            "url": "./../*",
+            "options": {
+                "symlink": true
+            }
+        }
+    ]
 }
