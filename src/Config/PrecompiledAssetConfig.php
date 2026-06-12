@@ -6,9 +6,7 @@ namespace SymPress\AssetCompiler\Config;
 
 final readonly class PrecompiledAssetConfig
 {
-    /**
-     * @param array<string, mixed> $config
-     */
+    /** @param array<string, mixed> $config */
     public function __construct(
         public string $adapter,
         public string $source,

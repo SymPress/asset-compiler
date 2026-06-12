@@ -7,16 +7,13 @@ namespace SymPress\AssetCompiler\Config;
 use Composer\Package\PackageInterface;
 use Composer\Package\RootPackageInterface;
 use InvalidArgumentException;
+use SymPress\AssetCompiler\PackageManager\PackageManager;
 use Symfony\Component\Serializer\Encoder\JsonDecode;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
 use Symfony\Component\Serializer\Exception\NotEncodableValueException;
-use SymPress\AssetCompiler\PackageManager\PackageManager;
 
 final readonly class ConfigReader
 {
-    /**
-     * @var list<string>
-     */
     private const array SUPPORTED_PRECOMPILED_ADAPTERS = [
         'archive',
         'zip',
@@ -26,12 +23,9 @@ final readonly class ConfigReader
         'gh-action-artifact',
     ];
 
-    /**
-     * @var array<string, bool|int>
-     */
     private const array JSON_CONTEXT = [
         JsonDecode::ASSOCIATIVE => true,
-        JsonDecode::OPTIONS => JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR,
+        JsonDecode::OPTIONS     => JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR,
     ];
 
     private ModeResolver $modes;
@@ -107,6 +101,7 @@ final readonly class ConfigReader
         bool $forceDefaults,
         ?string $packagePath = null,
     ): ?BuildConfig {
+
         $packageExtra = $this->packageExtra($package, $packagePath);
         $hasPackageExtra = $packageExtra !== [];
         /** @var array<string, mixed> $base */
@@ -161,9 +156,7 @@ final readonly class ConfigReader
         return $config->runnable() ? $config : null;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
+    /** @return array<string, mixed> */
     public function packageExtra(PackageInterface $package, ?string $packagePath = null): array
     {
         $fileConfig = $this->configFile($packagePath);
@@ -187,9 +180,7 @@ final readonly class ConfigReader
         return $this->normalizeConfig($config);
     }
 
-    /**
-     * @return array<string, mixed>
-     */
+    /** @return array<string, mixed> */
     private function normalizeConfig(mixed $config): array
     {
         if (is_string($config)) {
@@ -248,9 +239,7 @@ final readonly class ConfigReader
         return null;
     }
 
-    /**
-     * @param array<string, mixed> $packageJson
-     */
+    /** @param array<string, mixed> $packageJson */
     private function hasBuildScript(array $packageJson): bool
     {
         $scripts = $packageJson['scripts'] ?? null;
@@ -278,17 +267,17 @@ final readonly class ConfigReader
         $scripts = [];
 
         foreach ($raw as $script) {
-            if (is_string($script) && trim($script) !== '') {
-                $scripts[] = $this->interpolate(trim($script), $env);
+            if (!is_string($script) || trim($script) === '') {
+                continue;
             }
+
+            $scripts[] = $this->interpolate(trim($script), $env);
         }
 
         return array_values(array_unique($scripts));
     }
 
-    /**
-     * @param array<string, string|false> $env
-     */
+    /** @param array<string, string|false> $env */
     private function interpolate(string $value, array $env): string
     {
         return (string) preg_replace_callback(
@@ -321,9 +310,7 @@ final readonly class ConfigReader
         };
     }
 
-    /**
-     * @return array<string, string|false>
-     */
+    /** @return array<string, string|false> */
     private function env(mixed $value): array
     {
         $value = $this->modes->property($value);
@@ -339,17 +326,17 @@ final readonly class ConfigReader
                 continue;
             }
 
-            if ($envValue === false || is_string($envValue)) {
-                $env[$name] = $envValue;
+            if ($envValue !== false && !is_string($envValue)) {
+                continue;
             }
+
+            $env[$name] = $envValue;
         }
 
         return $env;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
+    /** @return array<string, mixed> */
     private function array(mixed $value): array
     {
         $value = $this->modes->property($value);
@@ -376,17 +363,17 @@ final readonly class ConfigReader
         $list = [];
 
         foreach ($value as $item) {
-            if (is_string($item) && trim($item) !== '') {
-                $list[] = trim($item);
+            if (!is_string($item) || trim($item) === '') {
+                continue;
             }
+
+            $list[] = trim($item);
         }
 
         return $list === [] ? $default : array_values(array_unique($list));
     }
 
-    /**
-     * @param array<string, mixed> $data
-     */
+    /** @param array<string, mixed> $data */
     private function value(array $data, string $key): mixed
     {
         return array_key_exists($key, $data) ? $this->modes->property($data[$key]) : null;
@@ -427,9 +414,7 @@ final readonly class ConfigReader
         return is_numeric($value) ? (int) $value : $default;
     }
 
-    /**
-     * @return list<PrecompiledAssetConfig>
-     */
+    /** @return list<PrecompiledAssetConfig> */
     private function precompiledAssets(mixed $value): array
     {
         $value = $this->modes->property($value);
@@ -473,9 +458,7 @@ final readonly class ConfigReader
         return $configs;
     }
 
-    /**
-     * @param array<array-key, mixed> $item
-     */
+    /** @param array<array-key, mixed> $item */
     private function checksum(array $item): ?string
     {
         $config = is_array($item['config'] ?? null) ? $item['config'] : [];
@@ -497,12 +480,13 @@ final readonly class ConfigReader
         $result = [];
 
         foreach ($value as $key => $item) {
-            if (is_string($key)) {
-                $result[$key] = $item;
+            if (!is_string($key)) {
+                continue;
             }
+
+            $result[$key] = $item;
         }
 
         return $result;
     }
-
 }

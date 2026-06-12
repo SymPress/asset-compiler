@@ -69,7 +69,7 @@ final readonly class ModeResolver
                 $this->devMode ? null : '$default-no-dev',
                 '$default',
             ],
-            static fn(?string $mode): bool => is_string($mode) && $mode !== '',
+            static fn (?string $mode): bool => is_string($mode) && $mode !== '',
         );
 
         foreach ($candidates as $candidate) {
@@ -90,12 +90,13 @@ final readonly class ModeResolver
         $result = [];
 
         foreach ($value as $key => $item) {
-            if (is_string($key)) {
-                $result[$key] = $item;
+            if (!is_string($key)) {
+                continue;
             }
+
+            $result[$key] = $item;
         }
 
         return $result;
     }
-
 }
