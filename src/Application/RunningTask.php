@@ -33,9 +33,11 @@ final class RunningTask
 
     public function markStarted(): void
     {
-        if ($this->startedAt === 0.0) {
-            $this->startedAt = microtime(true);
+        if ($this->startedAt !== 0.0) {
+            return;
         }
+
+        $this->startedAt = microtime(true);
     }
 
     public function elapsed(): float

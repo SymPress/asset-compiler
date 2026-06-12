@@ -6,9 +6,10 @@ namespace SymPress\AssetCompiler\Application;
 
 use Composer\IO\IOInterface;
 use SplQueue;
+use SymPress\AssetCompiler\Config\RootConfig;
+use SymPress\AssetCompiler\Discovery\PackageWorkspace;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Process\Process;
-use SymPress\AssetCompiler\Config\RootConfig;
 
 final readonly class TaskRunner
 {
@@ -19,9 +20,7 @@ final readonly class TaskRunner
         $this->filesystem = new Filesystem();
     }
 
-    /**
-     * @param list<BuildTask> $tasks
-     */
+    /** @param list<BuildTask> $tasks */
     public function run(array $tasks, RootConfig $config): RunnerResult
     {
         if ($tasks === []) {
@@ -49,12 +48,10 @@ final readonly class TaskRunner
         );
     }
 
-    /**
-     * @param list<BuildTask> $tasks
-     */
+    /** @param list<BuildTask> $tasks */
     private function runScriptTasksSequentially(array $tasks, RootConfig $config): RunnerResult
     {
-        /** @var list<\SymPress\AssetCompiler\Discovery\PackageWorkspace> $successful */
+        /** @var list<PackageWorkspace> $successful */
         $successful = [];
         /** @var array<string, string> $hashes */
         $hashes = [];
@@ -96,12 +93,10 @@ final readonly class TaskRunner
         return true;
     }
 
-    /**
-     * @param list<BuildTask> $tasks
-     */
+    /** @param list<BuildTask> $tasks */
     private function runSequentialSteps(array $tasks, RootConfig $config): PreparedTasks
     {
-        /** @var list<\SymPress\AssetCompiler\Discovery\PackageWorkspace> $successful */
+        /** @var list<PackageWorkspace> $successful */
         $successful = [];
         /** @var array<string, string> $hashes */
         $hashes = [];
@@ -110,8 +105,8 @@ final readonly class TaskRunner
         $failed = 0;
 
         foreach ($tasks as $task) {
-            $sequential = array_values(array_filter($task->steps, static fn(BuildStep $step): bool => !$step->parallel));
-            $parallel = array_values(array_filter($task->steps, static fn(BuildStep $step): bool => $step->parallel));
+            $sequential = array_values(array_filter($task->steps, static fn (BuildStep $step): bool => !$step->parallel));
+            $parallel = array_values(array_filter($task->steps, static fn (BuildStep $step): bool => $step->parallel));
             $cleanupNodeModules = $config->wipeNodeModules && $sequential !== [] && !$this->nodeModulesExists($task);
 
             foreach ($sequential as $step) {
@@ -174,9 +169,7 @@ final readonly class TaskRunner
         return true;
     }
 
-    /**
-     * @param list<BuildTask> $tasks
-     */
+    /** @param list<BuildTask> $tasks */
     private function runInPool(array $tasks, RootConfig $config): RunnerResult
     {
         /** @var SplQueue<RunningTask> $queue */
@@ -187,7 +180,7 @@ final readonly class TaskRunner
 
         /** @var array<int, RunningTask> $running */
         $running = [];
-        /** @var list<\SymPress\AssetCompiler\Discovery\PackageWorkspace> $successful */
+        /** @var list<PackageWorkspace> $successful */
         $successful = [];
         /** @var array<string, string> $hashes */
         $hashes = [];
@@ -248,10 +241,12 @@ final readonly class TaskRunner
 
         $path = rtrim($task->workspace->path, '/') . '/node_modules';
 
-        if (is_dir($path)) {
-            $this->filesystem->remove($path);
-            $this->io->write(sprintf('<info>%s</info> removed generated node_modules.', $task->workspace->name), true, IOInterface::VERBOSE);
+        if (!is_dir($path)) {
+            return;
         }
+
+        $this->filesystem->remove($path);
+        $this->io->write(sprintf('<info>%s</info> removed generated node_modules.', $task->workspace->name), true, IOInterface::VERBOSE);
     }
 
     private function nodeModulesExists(BuildTask $task): bool
@@ -280,15 +275,15 @@ final readonly class TaskRunner
         $task->process->start($this->output(...));
     }
 
-    /**
-     * @param array<int, RunningTask> $running
-     */
+    /** @param array<int, RunningTask> $running */
     private function stopRunning(array $running): void
     {
         foreach ($running as $task) {
-            if ($task->process instanceof Process && $task->process->isRunning()) {
-                $task->process->stop(1);
+            if (!($task->process instanceof Process) || !$task->process->isRunning()) {
+                continue;
             }
+
+            $task->process->stop(1);
         }
     }
 
