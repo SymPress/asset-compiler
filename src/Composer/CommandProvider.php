@@ -15,6 +15,7 @@ final readonly class CommandProvider implements CommandProviderCapability
     {
         return [
             new CompileAssetsCommand(),
+            new AssetInfoCommand(),
             new AssetHashCommand(),
         ];
     }

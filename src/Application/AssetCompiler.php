@@ -177,6 +177,80 @@ final readonly class AssetCompiler
 
     /**
      * @param list<string> $packagePatterns
+     * @return array<string, mixed>
+     */
+    public function info(array $packagePatterns = []): array
+    {
+        /** @var list<array<string, mixed>> $packages */
+        $packages = [];
+        $position = 0;
+
+        foreach ($this->filteredPackages($packagePatterns) as $workspace) {
+            $manager = $this->managerFor($workspace);
+            $hash = $this->hasher->hash($workspace, $manager);
+            $steps = [];
+
+            if ($manager instanceof PackageManagerResolution) {
+                $steps = BuildStepFactory::create(
+                    $workspace,
+                    $manager->manager,
+                    true,
+                    $this->rootConfig->timeoutIncrement * $position,
+                );
+                ++$position;
+            }
+
+            $packages[] = [
+                'name'           => $workspace->name,
+                'type'           => $workspace->type,
+                'path'           => $workspace->path,
+                'version'        => $workspace->version,
+                'reference'      => $workspace->reference,
+                'stability'      => $workspace->stability,
+                'hash'           => $hash,
+                'packageManager' => $manager instanceof PackageManagerResolution ? [
+                    'name'           => $manager->manager->name,
+                    'reason'         => $manager->reason,
+                    'managerVersion' => $manager->managerVersion,
+                    'nodeVersion'    => $manager->nodeVersion,
+                ] : null,
+                'build'          => [
+                    'dependencies'               => $workspace->build->dependencyMode->value,
+                    'scripts'                    => $workspace->build->scripts,
+                    'sourcePaths'                => $workspace->build->sourcePaths,
+                    'timeout'                    => $workspace->build->timeout,
+                    'isolatedCache'              => $workspace->build->isolatedCache,
+                    'precompiledAssets'          => count($workspace->build->precompiledAssets),
+                    'requirePrecompiledChecksum' => $workspace->build->requirePrecompiledChecksum,
+                ],
+                'steps'          => array_map(
+                    static fn (BuildStep $step): array => [
+                        'label'            => $step->label,
+                        'command'          => $step->command,
+                        'displayCommand'   => $step->displayCommand(),
+                        'workingDirectory' => $step->workingDirectory,
+                        'timeout'          => $step->timeout,
+                        'parallel'         => $step->parallel,
+                    ],
+                    $steps,
+                ),
+            ];
+        }
+
+        return [
+            'root'     => [
+                'path'                     => $this->rootConfig->rootPath,
+                'maxProcesses'             => $this->rootConfig->maxProcesses,
+                'executionStrategy'        => $this->rootConfig->executionStrategy,
+                'wipeNodeModules'          => $this->rootConfig->wipeNodeModules,
+                'clearPackageManagerCache' => $this->rootConfig->clearPackageManagerCache,
+            ],
+            'packages' => $packages,
+        ];
+    }
+
+    /**
+     * @param list<string> $packagePatterns
      * @return list<PackageWorkspace>
      */
     private function filteredPackages(array $packagePatterns): array
