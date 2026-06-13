@@ -78,15 +78,17 @@ final readonly class AssetHasher
     {
         $files = $this->files($workspace);
         $context = [
-            'package'                 => $workspace->name,
-            'manager'                 => $workspace->build->packageManager,
-            'manager-preference'      => $workspace->build->packageManagerPreference,
-            'resolved-manager'        => $packageManager?->manager->name,
-            'resolved-manager-reason' => $packageManager?->reason,
-            'dependencies'            => $workspace->build->dependencyMode->value,
-            'scripts'                 => $workspace->build->scripts,
-            'env'                     => $workspace->build->env,
-            'precompiled'             => array_map(
+            'package'                  => $workspace->name,
+            'manager'                  => $workspace->build->packageManager,
+            'manager-preference'       => $workspace->build->packageManagerPreference,
+            'resolved-manager'         => $packageManager?->manager->name,
+            'resolved-manager-reason'  => $packageManager?->reason,
+            'resolved-manager-version' => $packageManager?->managerVersion,
+            'node-version'             => $packageManager?->nodeVersion,
+            'dependencies'             => $workspace->build->dependencyMode->value,
+            'scripts'                  => $workspace->build->scripts,
+            'env'                      => $workspace->build->env,
+            'precompiled'              => array_map(
                 static fn (PrecompiledAssetConfig $config): array => [
                     'adapter'   => $config->adapter,
                     'source'    => $config->source,

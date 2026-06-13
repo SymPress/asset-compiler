@@ -39,6 +39,8 @@ final class PackageManagerResolverTest extends TestCase
 
         self::assertSame(PackageManager::NPM, $resolution->manager->name);
         self::assertSame('package.json packageManager', $resolution->reason);
+        self::assertSame('npm-version', $resolution->managerVersion);
+        self::assertSame('node-version', $resolution->nodeVersion);
     }
 
     public function testSingleNpmLockWinsOverRootPreference(): void
@@ -110,6 +112,7 @@ final class PackageManagerResolverTest extends TestCase
                 [PackageManager::NPM, PackageManager::YARN, PackageManager::PNPM],
                 true,
             ),
+            static fn (string $name): string => $name . '-version',
         );
     }
 

@@ -47,6 +47,23 @@ final class AssetHasherTest extends TestCase
         self::assertNotSame($npmHash, $yarnHash);
     }
 
+    public function testResolvedToolchainVersionsInvalidateHash(): void
+    {
+        $workspace = $this->workspace();
+        $hasher = new AssetHasher(new BufferIO());
+
+        $before = $hasher->hash(
+            $workspace,
+            new PackageManagerResolution(new PackageManager(PackageManager::NPM), 'npm fallback', '10.0.0', 'v22.0.0'),
+        );
+        $after = $hasher->hash(
+            $workspace,
+            new PackageManagerResolution(new PackageManager(PackageManager::NPM), 'npm fallback', '10.1.0', 'v22.0.0'),
+        );
+
+        self::assertNotSame($before, $after);
+    }
+
     public function testDefaultDiscoveryIncludesSrcDirectory(): void
     {
         $workspace = $this->workspace();

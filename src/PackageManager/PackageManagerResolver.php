@@ -8,6 +8,7 @@ use Closure;
 use RuntimeException;
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
 use Symfony\Component\Process\ExecutableFinder;
+use Symfony\Component\Process\Process;
 
 final class PackageManagerResolver
 {
@@ -15,14 +16,17 @@ final class PackageManagerResolver
 
     private ?Closure $availability;
 
+    private ?Closure $versionResolver;
+
     /** @var array<string, bool> */
     private array $available = [];
 
     /** @param callable(string): bool|null $availability */
-    public function __construct(?callable $availability = null)
+    public function __construct(?callable $availability = null, ?callable $versionResolver = null)
     {
         $this->executables = new ExecutableFinder();
         $this->availability = $availability !== null ? Closure::fromCallable($availability) : null;
+        $this->versionResolver = $versionResolver !== null ? Closure::fromCallable($versionResolver) : null;
     }
 
     public function resolve(PackageWorkspace $workspace): PackageManagerResolution
@@ -40,7 +44,12 @@ final class PackageManagerResolver
             $seen[$name] = true;
 
             if ($this->isAvailable($name)) {
-                return new PackageManagerResolution(new PackageManager($name), $reason);
+                return new PackageManagerResolution(
+                    new PackageManager($name),
+                    $reason,
+                    $this->version($name),
+                    $this->version('node'),
+                );
             }
         }
 
@@ -118,5 +127,29 @@ final class PackageManagerResolver
             : is_string($this->executables->find($name));
 
         return $this->available[$name];
+    }
+
+    private function version(string $executable): ?string
+    {
+        if ($this->versionResolver !== null) {
+            $version = ($this->versionResolver)($executable);
+
+            return is_string($version) && trim($version) !== '' ? trim($version) : null;
+        }
+
+        if (!is_string($this->executables->find($executable))) {
+            return null;
+        }
+
+        $process = new Process([$executable, '--version'], null, null, null, 10);
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            return null;
+        }
+
+        $version = trim($process->getOutput());
+
+        return $version === '' ? null : $version;
     }
 }
