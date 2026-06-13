@@ -232,7 +232,11 @@ final readonly class PackageDiscovery
         }
 
         $path = $this->pathForPackage($package);
-        $packageExtra = $this->configReader->packageExtra($package, $path);
+        $packageExtra = $this->configReader->packageExtra(
+            $package,
+            $path,
+            $this->rootConfig->allowPackageConfigFiles,
+        );
 
         if ($packageExtra !== []) {
             return $packageJson !== [];

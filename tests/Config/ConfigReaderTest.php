@@ -33,8 +33,52 @@ final class ConfigReaderTest extends TestCase
         self::assertFalse($config->wipeNodeModules);
         self::assertSame(0, $config->timeoutIncrement);
         self::assertSame('yarn', $config->packageManager);
+        self::assertFalse($config->allowPackageConfigFiles);
+        self::assertFalse($config->requirePrecompiledChecksum);
+        self::assertFalse($config->clearPackageManagerCache);
+        self::assertSame(RootConfig::EXECUTION_STRATEGY_STAGED, $config->executionStrategy);
         self::assertSame([], $config->defaults);
         self::assertSame(['wordpress-plugin', 'wordpress-theme', 'wordpress-muplugin'], $config->packageTypes);
+    }
+
+    public function testRootConfigParsesGroupedExecutionAndCacheCleanup(): void
+    {
+        $package = new RootPackage('acme/root', '1.0.0.0', '1.0.0');
+        $package->setExtra([
+            RootConfig::EXTRA_KEY => [
+                'execution-strategy'          => 'grouped',
+                'clear-package-manager-cache' => true,
+            ],
+        ]);
+
+        $config = new ConfigReader(null, true)->rootConfig($package, '/project');
+
+        self::assertSame(RootConfig::EXECUTION_STRATEGY_GROUPED, $config->executionStrategy);
+        self::assertTrue($config->clearPackageManagerCache);
+    }
+
+    public function testRootConfigRejectsUnsupportedExecutionStrategy(): void
+    {
+        $package = new RootPackage('acme/root', '1.0.0.0', '1.0.0');
+        $package->setExtra([
+            RootConfig::EXTRA_KEY => [
+                'execution-strategy' => 'everything-at-once',
+            ],
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unsupported asset compiler execution-strategy');
+
+        new ConfigReader(null, true)->rootConfig($package, '/project');
+    }
+
+    public function testNoDevRootConfigRequiresRemotePrecompiledChecksumsByDefault(): void
+    {
+        $package = new RootPackage('acme/root', '1.0.0.0', '1.0.0');
+
+        $config = new ConfigReader(null, false)->rootConfig($package, '/project');
+
+        self::assertTrue($config->requirePrecompiledChecksum);
     }
 
     public function testBuildConfigFallsBackToPackageJsonBuildScript(): void
@@ -112,7 +156,32 @@ final class ConfigReaderTest extends TestCase
         self::assertTrue($config->isolatedCache);
     }
 
-    public function testPackageConfigFileOverridesComposerExtra(): void
+    public function testPackageConfigFileIsIgnoredByDefault(): void
+    {
+        $path = sys_get_temp_dir() . '/sympress_asset_compiler_config_' . bin2hex(random_bytes(8));
+        mkdir($path);
+
+        try {
+            file_put_contents($path . '/asset-compiler.json', json_encode(['script' => 'from-file'], JSON_THROW_ON_ERROR));
+
+            $package = new Package('acme/package', '1.0.0.0', '1.0.0');
+            $package->setExtra([
+                RootConfig::EXTRA_KEY => [
+                    'script' => 'from-composer',
+                ],
+            ]);
+
+            self::assertSame(
+                ['script' => 'from-composer'],
+                new ConfigReader(null, true)->packageExtra($package, $path),
+            );
+        } finally {
+            unlink($path . '/asset-compiler.json');
+            rmdir($path);
+        }
+    }
+
+    public function testPackageConfigFileOverridesComposerExtraWhenAllowed(): void
     {
         $path = sys_get_temp_dir() . '/sympress_asset_compiler_config_' . bin2hex(random_bytes(8));
         mkdir($path);
@@ -129,7 +198,7 @@ final class ConfigReaderTest extends TestCase
 
             self::assertSame(
                 ['script' => 'from-file'],
-                new ConfigReader(null, true)->packageExtra($package, $path),
+                new ConfigReader(null, true)->packageExtra($package, $path, true),
             );
         } finally {
             unlink($path . '/asset-compiler.json');
@@ -152,6 +221,7 @@ final class ConfigReaderTest extends TestCase
             new ConfigReader(null, true)->packageExtra(
                 new Package('acme/package', '1.0.0.0', '1.0.0'),
                 $path,
+                true,
             );
         } finally {
             unlink($path . '/asset-compiler.json');

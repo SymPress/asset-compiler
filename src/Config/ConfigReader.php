@@ -32,7 +32,7 @@ final readonly class ConfigReader
 
     private JsonEncoder $json;
 
-    public function __construct(?string $mode, bool $devMode)
+    public function __construct(?string $mode, private bool $devMode)
     {
         $this->modes = new ModeResolver($mode, $devMode);
         $this->json = new JsonEncoder(defaultContext: self::JSON_CONTEXT);
@@ -86,6 +86,22 @@ final readonly class ConfigReader
                 ['wordpress-plugin', 'wordpress-theme', 'wordpress-muplugin'],
             ),
             env: $this->env($this->value($data, 'default-env')),
+            allowPackageConfigFiles: $this->envBool(
+                'COMPOSER_ASSET_COMPILER_ALLOW_PACKAGE_CONFIG_FILES',
+                $this->bool($this->value($data, 'allow-package-config-files'), false),
+            ),
+            requirePrecompiledChecksum: $this->envBool(
+                'COMPOSER_ASSET_COMPILER_REQUIRE_PRECOMPILED_CHECKSUM',
+                $this->bool($this->value($data, 'require-precompiled-checksum'), !$this->devMode),
+            ),
+            clearPackageManagerCache: $this->envBool(
+                'COMPOSER_ASSET_COMPILER_CLEAR_PACKAGE_MANAGER_CACHE',
+                $this->bool($this->value($data, 'clear-package-manager-cache'), false),
+            ),
+            executionStrategy: RootConfig::normalizeExecutionStrategy(
+                $this->envString('COMPOSER_ASSET_COMPILER_EXECUTION_STRATEGY')
+                ?? $this->value($data, 'execution-strategy'),
+            ),
         );
     }
 
@@ -102,7 +118,7 @@ final readonly class ConfigReader
         ?string $packagePath = null,
     ): ?BuildConfig {
 
-        $packageExtra = $this->packageExtra($package, $packagePath);
+        $packageExtra = $this->packageExtra($package, $packagePath, $root->allowPackageConfigFiles);
         $hasPackageExtra = $packageExtra !== [];
         /** @var array<string, mixed> $base */
         $base = [];
@@ -151,15 +167,23 @@ final readonly class ConfigReader
             precompiledAssets: $this->precompiledAssets(
                 $this->value($base, 'precompiled') ?? $this->value($base, 'pre-compiled'),
             ),
+            requirePrecompiledChecksum: $this->bool(
+                $this->value($base, 'require-precompiled-checksum'),
+                $root->requirePrecompiledChecksum,
+            ),
         );
 
         return $config->runnable() ? $config : null;
     }
 
     /** @return array<string, mixed> */
-    public function packageExtra(PackageInterface $package, ?string $packagePath = null): array
-    {
-        $fileConfig = $this->configFile($packagePath);
+    public function packageExtra(
+        PackageInterface $package,
+        ?string $packagePath = null,
+        bool $allowConfigFile = false,
+    ): array {
+
+        $fileConfig = $allowConfigFile ? $this->configFile($packagePath) : null;
 
         if ($fileConfig !== null) {
             return $this->normalizeConfig($fileConfig);
