@@ -13,7 +13,7 @@ composer install
 Run tests:
 
 ```bash
-composer test
+composer tests
 ```
 
 Run a syntax check before opening a change:

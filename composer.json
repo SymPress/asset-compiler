@@ -53,6 +53,9 @@
             "Composer\\Config::disableProcessTimeout",
             "phpunit --configuration phpunit.xml.dist --no-coverage"
         ],
+        "test": [
+            "@tests"
+        ],
         "qa": [
             "@cs",
             "@static-analysis",
