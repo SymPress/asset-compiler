@@ -45,10 +45,16 @@ Print the current build hash for discovered packages:
 composer assets-hash
 ```
 
+Print package metadata for external tooling:
+
+```bash
+composer assets-info
+```
+
 Run the local quality gate used by this package:
 
 ```bash
-composer check
+composer qa
 ```
 
 Useful compile options:
@@ -60,6 +66,7 @@ composer compile-assets --packages 'vendor/package,vendor/theme-*'
 composer compile-assets --ignore-lock='*'
 composer compile-assets --no-install
 composer compile-assets --mode production --no-dev
+composer compile-assets --execution-strategy grouped --wipe-node-modules --clear-package-manager-cache
 ```
 
 See [Commands](docs/commands.md) for the full command reference.
@@ -115,7 +122,7 @@ Use the object form only when a package needs custom behavior:
 
 Packages that need a different package manager can also declare it in `package.json`, for example `"packageManager": "npm@10.9.0"`. When a package has conflicting lock files, the root preference is used unless package config or `packageManager` makes the choice explicit. Without a root preference, npm is used.
 
-Packages may also move their build config into `asset-compiler.json` or `assets-compiler.json` in the package root. The file contains the same object that would otherwise live under Composer `extra.sympress.asset-compiler`.
+Packages may also move their build config into `asset-compiler.json` or `assets-compiler.json` in the package root when the root project explicitly enables package config files. The file contains the same object that would otherwise live under Composer `extra.sympress.asset-compiler`.
 
 ## Precompiled Assets
 
@@ -136,11 +143,11 @@ Packages can restore ZIP archives instead of building locally. This is useful fo
 }
 ```
 
-Supported adapters are `archive`, `zip`, `github-release`, `gh-release-zip`, `github-artifact`, and `gh-action-artifact`. If precompiled assets are unavailable, the compiler falls back to the normal build. Downloads use HTTP(S)-only redirects, bounded timeouts, archive size limits, and ZIP extraction limits. GitHub tokens are only sent to trusted GitHub API/download hosts and are not forwarded to arbitrary redirect targets.
+Supported adapters are `archive`, `zip`, `github-release`, `gh-release-zip`, `github-artifact`, and `gh-action-artifact`. If precompiled assets are unavailable, the compiler falls back to the normal build. Security failures such as checksum mismatches, unsafe targets, unsafe ZIP entries, HTTP sources, or missing production checksums fail the run. Downloads use HTTPS-only requests and redirects, bounded timeouts, archive size limits, and ZIP extraction limits. GitHub tokens are only sent to trusted GitHub API/download hosts and are not forwarded to arbitrary redirect targets.
 
 ## Build Locks
 
-Every successful package build writes a package-local `.sympress_asset_compiler.lock` file. The lock stores the current build hash, so unchanged packages can be skipped on future runs. The hash includes the resolved package manager, source inputs, build config, environment, and precompiled asset configuration.
+Every successful package build writes a package-local `.sympress_asset_compiler.lock` file. The lock stores the current build hash, so unchanged packages can be skipped on future runs. The hash includes the resolved package manager and toolchain versions, source inputs, build config, environment, and precompiled asset configuration.
 
 Use `--ignore-lock='*'` to rebuild everything or `--ignore-lock='vendor/package-*'` to rebuild selected package patterns.
 

@@ -20,6 +20,11 @@ Options:
 | `--no-install` | Skip dependency installation and run only build scripts. |
 | `--dry-run` | Print the planned package-manager commands without executing them. |
 | `--explain` | Print lock status, precompiled configuration count, package-manager resolution details, and skip reasons. |
+| `--max-processes <count>` | Override package build parallelism for this run. |
+| `--execution-strategy <name>` | Override execution strategy for this run. Supported values are `staged` and `grouped`. |
+| `--wipe-node-modules` | Remove generated `node_modules` after each successful package build. |
+| `--keep-node-modules` | Keep `node_modules` even when cleanup is enabled in configuration. |
+| `--clear-package-manager-cache` | Remove isolated package-manager caches after each successful package build. |
 
 Examples:
 
@@ -32,19 +37,47 @@ composer compile-assets --ignore-lock='*'
 composer compile-assets --ignore-lock='acme/theme-*'
 composer compile-assets --mode production --no-dev
 composer compile-assets --no-install
+composer compile-assets --execution-strategy grouped --wipe-node-modules --clear-package-manager-cache
 ```
 
 The command summary reports discovered packages, packages that were built, restored, or planned, packages already current through build locks, and failures. The same summary is printed when `auto-run` is enabled for Composer install or update events.
 
 With `--explain`, each package reports whether its lock is current, stale, missing, or ignored. Packages with runnable build steps also report the resolved package manager and the signal that selected it.
 
-Dependency installation and dependency updates are executed in a controlled sequential phase. Build scripts then run through the bounded process pool configured by `max-processes`.
+The default `staged` execution strategy runs dependency installation and dependency updates in a controlled sequential phase. Build scripts then run through the bounded process pool configured by `max-processes`.
+
+The `grouped` execution strategy runs each package as a sequential pipeline while different packages may run in parallel. This keeps install and build steps for one package close together, allowing generated `node_modules` and isolated package-manager caches to be removed immediately after that package succeeds. It is useful for large CI jobs with limited disk space.
+
+## `assets-info`
+
+Outputs discovered asset compiler package metadata as JSON. This is useful for custom watch commands, external Node-based orchestrators, or CI diagnostics that need package paths, build steps, package-manager resolution, hashes, and source path information without running a build.
+
+Aliases:
+
+- `assets:info`
+- `asset-compiler:info`
+
+Options:
+
+| Option | Description |
+| --- | --- |
+| `--mode <name>` | Resolve root and package configuration against a named mode. |
+| `--no-dev` | Resolve configuration as Composer no-dev mode. |
+| `--packages <patterns>` | Only include comma-separated package names or fnmatch patterns. |
+
+Examples:
+
+```bash
+composer assets-info
+composer assets-info --packages 'sympress/*'
+composer assets-info --mode production --no-dev
+```
 
 ## `assets-hash`
 
 Prints the current build hash for every discovered package. This is useful when debugging why a package is skipped or rebuilt.
 
-Hashes include the resolved package manager when a package needs package-manager-backed dependency or script steps. This means changing from an npm fallback build to a Yarn build invalidates the old lock automatically.
+Hashes include the resolved package manager and detected Node.js/package-manager versions when a package needs package-manager-backed dependency or script steps. This means changing from an npm fallback build to a Yarn build, or changing the local toolchain version, invalidates the old lock automatically.
 
 Alias:
 
@@ -109,3 +142,5 @@ When `isolated-cache` is enabled, install/update commands receive package-specif
 | npm | `--cache <path>` |
 | yarn | `--cache-folder <path>` |
 | pnpm | `--store-dir <path>` |
+
+Use `clear-package-manager-cache` or `composer compile-assets --clear-package-manager-cache` to remove those isolated caches after successful package builds.
