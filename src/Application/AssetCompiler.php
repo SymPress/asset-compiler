@@ -39,8 +39,18 @@ final readonly class AssetCompiler
         bool $installDependencies = true,
         bool $dryRun = false,
         bool $explain = false,
+        ?int $maxProcesses = null,
+        ?bool $wipeNodeModules = null,
+        ?bool $clearPackageManagerCache = null,
+        ?string $executionStrategy = null,
     ): CompilationResult {
 
+        $runtimeConfig = $this->rootConfig->withRuntimeOverrides(
+            maxProcesses: $maxProcesses,
+            wipeNodeModules: $wipeNodeModules,
+            clearPackageManagerCache: $clearPackageManagerCache,
+            executionStrategy: $executionStrategy,
+        );
         $workspaces = $this->filteredPackages($packagePatterns);
         /** @var list<BuildTask> $tasks */
         $tasks = [];
@@ -91,7 +101,7 @@ final readonly class AssetCompiler
                 $workspace,
                 $manager->manager,
                 $installDependencies,
-                $this->rootConfig->timeoutIncrement * $position,
+                $runtimeConfig->timeoutIncrement * $position,
             );
             ++$position;
 
@@ -128,7 +138,7 @@ final readonly class AssetCompiler
             );
         }
 
-        $result = $this->runner->run($tasks, $this->rootConfig);
+        $result = $this->runner->run($tasks, $runtimeConfig);
 
         foreach ($result->successfulWorkspaces as $workspace) {
             $hash = $result->hashes[$workspace->name] ?? null;

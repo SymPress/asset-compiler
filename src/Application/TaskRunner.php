@@ -27,6 +27,10 @@ final readonly class TaskRunner
             return new RunnerResult([], [], 0);
         }
 
+        if ($config->executionStrategy === RootConfig::EXECUTION_STRATEGY_GROUPED) {
+            return $this->runGrouped($tasks, $config);
+        }
+
         $prepared = $this->runSequentialSteps($tasks, $config);
 
         if ($prepared->failed > 0 && $config->stopOnFailure) {
@@ -49,6 +53,16 @@ final readonly class TaskRunner
     }
 
     /** @param list<BuildTask> $tasks */
+    private function runGrouped(array $tasks, RootConfig $config): RunnerResult
+    {
+        $prepared = $this->prepareGroupedTasks($tasks, $config);
+
+        return $config->maxProcesses <= 1 || count($prepared) === 1
+            ? $this->runScriptTasksSequentially($prepared, $config)
+            : $this->runInPool($prepared, $config);
+    }
+
+    /** @param list<BuildTask> $tasks */
     private function runScriptTasksSequentially(array $tasks, RootConfig $config): RunnerResult
     {
         /** @var list<PackageWorkspace> $successful */
@@ -58,7 +72,7 @@ final readonly class TaskRunner
         $failed = 0;
 
         foreach ($tasks as $task) {
-            $ok = $this->runTask($task);
+            $ok = $this->runTask($task, $config);
 
             if ($ok) {
                 $successful[] = $task->workspace;
@@ -76,7 +90,7 @@ final readonly class TaskRunner
         return new RunnerResult($successful, $hashes, $failed);
     }
 
-    private function runTask(BuildTask $task): bool
+    private function runTask(BuildTask $task, RootConfig $config): bool
     {
         $started = microtime(true);
         $this->io->write(sprintf('<info>%s</info> run build steps', $task->workspace->name));
@@ -87,7 +101,7 @@ final readonly class TaskRunner
             }
         }
 
-        $this->cleanupNodeModules($task);
+        $this->cleanupAfterSuccessfulTask($task, $config);
         $this->io->write(sprintf('<info>%s</info> completed in %.2fs.', $task->workspace->name, microtime(true) - $started));
 
         return true;
@@ -124,7 +138,7 @@ final readonly class TaskRunner
             }
 
             if ($parallel === []) {
-                $this->cleanupNodeModules(new BuildTask($task->workspace, $task->hash, [], $cleanupNodeModules));
+                $this->cleanupAfterSuccessfulTask(new BuildTask($task->workspace, $task->hash, [], $cleanupNodeModules), $config);
                 $successful[] = $task->workspace;
                 $hashes[$task->workspace->name] = $task->hash;
                 continue;
@@ -219,7 +233,7 @@ final readonly class TaskRunner
                 }
 
                 unset($running[$id]);
-                $this->cleanupNodeModules($task->task);
+                $this->cleanupAfterSuccessfulTask($task->task, $config);
                 $successful[] = $task->task->workspace;
                 $hashes[$task->task->workspace->name] = $task->task->hash;
                 $this->io->write(
@@ -231,6 +245,29 @@ final readonly class TaskRunner
         }
 
         return new RunnerResult($successful, $hashes, $failed);
+    }
+
+    /**
+     * @param list<BuildTask> $tasks
+     * @return list<BuildTask>
+     */
+    private function prepareGroupedTasks(array $tasks, RootConfig $config): array
+    {
+        return array_map(
+            function (BuildTask $task) use ($config): BuildTask {
+                $hasDependencySteps = array_any($task->steps, static fn (BuildStep $step): bool => !$step->parallel);
+                $cleanupNodeModules = $config->wipeNodeModules && $hasDependencySteps && !$this->nodeModulesExists($task);
+
+                return new BuildTask($task->workspace, $task->hash, $task->steps, $cleanupNodeModules);
+            },
+            $tasks,
+        );
+    }
+
+    private function cleanupAfterSuccessfulTask(BuildTask $task, RootConfig $config): void
+    {
+        $this->cleanupNodeModules($task);
+        $this->cleanupPackageManagerCache($task, $config);
     }
 
     private function cleanupNodeModules(BuildTask $task): void
@@ -247,6 +284,26 @@ final readonly class TaskRunner
 
         $this->filesystem->remove($path);
         $this->io->write(sprintf('<info>%s</info> removed generated node_modules.', $task->workspace->name), true, IOInterface::VERBOSE);
+    }
+
+    private function cleanupPackageManagerCache(BuildTask $task, RootConfig $config): void
+    {
+        if (!$config->clearPackageManagerCache || !$task->workspace->build->isolatedCache) {
+            return;
+        }
+
+        $path = BuildStepFactory::cacheDirectoryFor($task->workspace);
+
+        if (!is_dir($path)) {
+            return;
+        }
+
+        $this->filesystem->remove($path);
+        $this->io->write(
+            sprintf('<info>%s</info> removed isolated package-manager cache.', $task->workspace->name),
+            true,
+            IOInterface::VERBOSE,
+        );
     }
 
     private function nodeModulesExists(BuildTask $task): bool

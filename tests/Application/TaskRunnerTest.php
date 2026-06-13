@@ -7,6 +7,7 @@ namespace SymPress\AssetCompiler\Tests\Application;
 use Composer\IO\BufferIO;
 use PHPUnit\Framework\TestCase;
 use SymPress\AssetCompiler\Application\BuildStep;
+use SymPress\AssetCompiler\Application\BuildStepFactory;
 use SymPress\AssetCompiler\Application\BuildTask;
 use SymPress\AssetCompiler\Application\TaskRunner;
 use SymPress\AssetCompiler\Config\BuildConfig;
@@ -55,7 +56,50 @@ final class TaskRunnerTest extends TestCase
         self::assertFileExists($workspace->path . '/node_modules/installed');
     }
 
-    private function workspace(): PackageWorkspace
+    public function testGroupedStrategyRemovesNodeModulesAfterPackagePipeline(): void
+    {
+        $workspace = $this->workspace();
+        $task = new BuildTask($workspace, 'hash', [
+            new BuildStep('install dependencies', ['php', '-r', 'mkdir("node_modules"); file_put_contents("node_modules/installed", "yes");'], $workspace->path, 60, [], false),
+            new BuildStep('run build', ['php', '-r', 'if (!is_file("node_modules/installed")) { exit(1); } file_put_contents("built", "yes");'], $workspace->path, 60),
+        ]);
+
+        $result = new TaskRunner(new BufferIO())->run([
+            $task,
+        ], $this->rootConfig(
+            wipeNodeModules: true,
+            executionStrategy: RootConfig::EXECUTION_STRATEGY_GROUPED,
+        ));
+
+        self::assertCount(1, $result->successfulWorkspaces);
+        self::assertFileExists($workspace->path . '/built');
+        self::assertDirectoryDoesNotExist($workspace->path . '/node_modules');
+    }
+
+    public function testClearsIsolatedPackageManagerCacheAfterSuccessfulTask(): void
+    {
+        $workspace = $this->workspace(isolatedCache: true);
+        $cacheDirectory = BuildStepFactory::cacheDirectoryFor($workspace);
+        mkdir($cacheDirectory, 0777, true);
+        file_put_contents($cacheDirectory . '/cached', 'yes');
+
+        $task = new BuildTask($workspace, 'hash', [
+            new BuildStep('run build', ['php', '-r', 'file_put_contents("built", "yes");'], $workspace->path, 60),
+        ]);
+
+        $result = new TaskRunner(new BufferIO())->run([
+            $task,
+        ], $this->rootConfig(
+            wipeNodeModules: false,
+            clearPackageManagerCache: true,
+        ));
+
+        self::assertCount(1, $result->successfulWorkspaces);
+        self::assertFileExists($workspace->path . '/built');
+        self::assertDirectoryDoesNotExist($cacheDirectory);
+    }
+
+    private function workspace(bool $isolatedCache = false): PackageWorkspace
     {
         $this->workspacePath = sys_get_temp_dir() . '/sympress_asset_compiler_runner_' . bin2hex(random_bytes(8));
         mkdir($this->workspacePath);
@@ -64,13 +108,17 @@ final class TaskRunnerTest extends TestCase
             name: 'vendor/package',
             type: 'wordpress-plugin',
             path: $this->workspacePath,
-            build: new BuildConfig([], DependencyMode::None, null, null, [], [], 120),
+            build: new BuildConfig([], DependencyMode::None, null, null, [], [], 120, $isolatedCache),
             packageJson: [],
         );
     }
 
-    private function rootConfig(bool $wipeNodeModules): RootConfig
-    {
+    private function rootConfig(
+        bool $wipeNodeModules,
+        bool $clearPackageManagerCache = false,
+        string $executionStrategy = RootConfig::EXECUTION_STRATEGY_STAGED,
+    ): RootConfig {
+
         return new RootConfig(
             rootPath: '/project',
             autoRun: true,
@@ -86,6 +134,8 @@ final class TaskRunnerTest extends TestCase
             packages: [],
             packageTypes: ['wordpress-plugin'],
             env: [],
+            clearPackageManagerCache: $clearPackageManagerCache,
+            executionStrategy: $executionStrategy,
         );
     }
 
