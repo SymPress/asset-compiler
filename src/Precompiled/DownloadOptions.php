@@ -83,11 +83,11 @@ final readonly class DownloadOptions
         $fromScheme = $this->scheme($fromUrl);
         $toScheme = $this->scheme($toUrl);
 
-        if (!in_array($toScheme, ['http', 'https'], true)) {
+        if ($toScheme !== 'https') {
             return false;
         }
 
-        if ($fromScheme === 'https' && $toScheme !== 'https') {
+        if (!in_array($fromScheme, ['http', 'https'], true)) {
             return false;
         }
 

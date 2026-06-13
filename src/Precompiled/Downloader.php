@@ -27,7 +27,14 @@ final readonly class Downloader
     {
         $options ??= DownloadOptions::defaults();
 
-        if (!preg_match('~^https?://~i', $source)) {
+        if (
+            preg_match('~^[a-z][a-z0-9+.-]*://~i', $source)
+            && !preg_match('~^https://~i', $source)
+        ) {
+            throw new PrecompiledAssetSecurityException(sprintf('Refused insecure non-HTTPS precompiled asset source: %s.', $source));
+        }
+
+        if (!preg_match('~^https://~i', $source)) {
             if (!is_file($source)) {
                 throw new RuntimeException(sprintf('Precompiled asset archive not found: %s.', $source));
             }

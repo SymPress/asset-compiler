@@ -22,19 +22,30 @@ final readonly class ArchiveExtractor
 
     public function extract(string $archive, string $target, bool $cleanTarget): void
     {
-        if ($cleanTarget && is_dir($target)) {
-            $this->filesystem->remove($target);
+        $parent = dirname($target);
+        $this->filesystem->mkdir($parent);
+        $staging = $this->stagingDirectory($parent);
+
+        try {
+            if (!preg_match('/\.zip$/i', $archive)) {
+                throw new RuntimeException(sprintf('Unsupported precompiled asset archive: %s.', $archive));
+            }
+
+            $this->extractZip($archive, $staging);
+
+            if ($cleanTarget) {
+                $this->replaceTarget($staging, $target);
+
+                return;
+            }
+
+            $this->filesystem->mkdir($target);
+            $this->filesystem->mirror($staging, $target, null, ['override' => true]);
+        } finally {
+            if (is_dir($staging)) {
+                $this->filesystem->remove($staging);
+            }
         }
-
-        $this->filesystem->mkdir($target);
-
-        if (preg_match('/\.zip$/i', $archive)) {
-            $this->extractZip($archive, $target);
-
-            return;
-        }
-
-        throw new RuntimeException(sprintf('Unsupported precompiled asset archive: %s.', $archive));
     }
 
     private function extractZip(string $archive, string $target): void
@@ -47,7 +58,7 @@ final readonly class ArchiveExtractor
 
         try {
             if ($zip->numFiles > self::MAX_FILES) {
-                throw new RuntimeException(sprintf('Precompiled asset archive contains too many files: %d.', $zip->numFiles));
+                throw new PrecompiledAssetSecurityException(sprintf('Precompiled asset archive contains too many files: %d.', $zip->numFiles));
             }
 
             $totalBytes = 0;
@@ -59,7 +70,7 @@ final readonly class ArchiveExtractor
                 $totalBytes += $size;
 
                 if ($size > self::MAX_ENTRY_BYTES || $totalBytes > self::MAX_TOTAL_BYTES) {
-                    throw new RuntimeException('Precompiled asset archive exceeds the configured extraction limits.');
+                    throw new PrecompiledAssetSecurityException('Precompiled asset archive exceeds the configured extraction limits.');
                 }
 
                 $targetPath = rtrim($target, '/') . '/' . $name;
@@ -100,14 +111,14 @@ final readonly class ArchiveExtractor
         $name = $zip->getNameIndex($index);
 
         if (!is_string($name) || $name === '') {
-            throw new RuntimeException('Precompiled asset archive contains an unsafe empty entry name.');
+            throw new PrecompiledAssetSecurityException('Precompiled asset archive contains an unsafe empty entry name.');
         }
 
         $name = str_replace('\\', '/', $name);
         $segments = explode('/', $name);
 
         if (str_starts_with($name, '/') || in_array('..', $segments, true)) {
-            throw new RuntimeException(sprintf('Precompiled asset archive contains an unsafe entry path: %s.', $name));
+            throw new PrecompiledAssetSecurityException(sprintf('Precompiled asset archive contains an unsafe entry path: %s.', $name));
         }
 
         while (str_starts_with($name, './')) {
@@ -115,7 +126,7 @@ final readonly class ArchiveExtractor
         }
 
         if ($name === '') {
-            throw new RuntimeException('Precompiled asset archive contains an unsafe empty entry name.');
+            throw new PrecompiledAssetSecurityException('Precompiled asset archive contains an unsafe empty entry name.');
         }
 
         return $name;
@@ -146,12 +157,56 @@ final readonly class ArchiveExtractor
             $bytes += strlen($chunk);
 
             if ($bytes > self::MAX_ENTRY_BYTES || ($expectedBytes > 0 && $bytes > $expectedBytes)) {
-                throw new RuntimeException('Precompiled asset archive entry exceeds the configured extraction limits.');
+                throw new PrecompiledAssetSecurityException('Precompiled asset archive entry exceeds the configured extraction limits.');
             }
 
             if (fwrite($destination, $chunk) === false) {
                 throw new RuntimeException('Could not write extracted asset file contents.');
             }
         }
+    }
+
+    private function stagingDirectory(string $parent): string
+    {
+        for ($attempt = 0; $attempt < 10; ++$attempt) {
+            $path = rtrim($parent, '/') . '/.sympress_asset_extract_' . bin2hex(random_bytes(8));
+
+            if (file_exists($path)) {
+                continue;
+            }
+
+            $this->filesystem->mkdir($path);
+
+            return $path;
+        }
+
+        throw new RuntimeException(sprintf('Could not create staging directory below %s.', $parent));
+    }
+
+    private function replaceTarget(string $staging, string $target): void
+    {
+        $backup = null;
+
+        if (file_exists($target) || is_link($target)) {
+            $backup = rtrim(dirname($target), '/') . '/.sympress_asset_backup_' . bin2hex(random_bytes(8));
+
+            if (!rename($target, $backup)) {
+                throw new RuntimeException(sprintf('Could not move existing asset target: %s.', $target));
+            }
+        }
+
+        if (rename($staging, $target)) {
+            if ($backup !== null) {
+                $this->filesystem->remove($backup);
+            }
+
+            return;
+        }
+
+        if ($backup !== null && !file_exists($target)) {
+            rename($backup, $target);
+        }
+
+        throw new RuntimeException(sprintf('Could not replace extracted asset target: %s.', $target));
     }
 }

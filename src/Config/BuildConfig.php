@@ -22,6 +22,7 @@ final readonly class BuildConfig
         public int $timeout,
         public bool $isolatedCache = false,
         public array $precompiledAssets = [],
+        public bool $requirePrecompiledChecksum = false,
     ) {
     }
 
