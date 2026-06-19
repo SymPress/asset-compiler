@@ -175,7 +175,6 @@ final readonly class Downloader
             $error = curl_error($handle);
             $status = (int) curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
         } finally {
-            curl_close($handle);
             fclose($file);
         }
 
