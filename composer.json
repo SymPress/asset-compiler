@@ -24,9 +24,7 @@
     "require-dev": {
         "composer/composer": "^2.10",
         "friendsofphp/php-cs-fixer": "^3.89",
-        "phpstan/phpstan": "^2.2",
-        "phpunit/phpunit": "^11.5",
-        "sympress/coding-standards": "dev-main"
+        "sympress/qa": "dev-main"
     },
     "autoload": {
         "psr-4": {
@@ -39,19 +37,19 @@
     "scripts": {
         "cs": [
             "Composer\\Config::disableProcessTimeout",
-            "phpcs --standard=phpcs.xml.dist"
+            "qa cs"
         ],
         "cs:fix": [
             "Composer\\Config::disableProcessTimeout",
-            "phpcbf --standard=phpcs.xml.dist"
+            "qa cs:fix"
         ],
         "static-analysis": [
             "Composer\\Config::disableProcessTimeout",
-            "phpstan analyse --memory-limit=1G --no-progress -c phpstan.neon.dist"
+            "qa static-analysis"
         ],
         "tests": [
             "Composer\\Config::disableProcessTimeout",
-            "phpunit --configuration phpunit.xml.dist --no-coverage"
+            "qa tests"
         ],
         "test": [
             "@tests"
@@ -66,7 +64,8 @@
         "sort-packages": true,
         "optimize-autoloader": true,
         "allow-plugins": {
-            "dealerdirect/phpcodesniffer-composer-installer": true
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "phpstan/extension-installer": true
         }
     },
     "minimum-stability": "dev",
