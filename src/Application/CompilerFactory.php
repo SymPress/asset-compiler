@@ -52,7 +52,7 @@ final class CompilerFactory
         if ($rootPath === '.' || $rootPath === '') {
             $vendorDir = $composer->getConfig()->get('vendor-dir');
 
-            if (is_string($vendorDir) && $vendorDir !== '') {
+            if ($vendorDir !== '') {
                 return dirname($vendorDir);
             }
 
