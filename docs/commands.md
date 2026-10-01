@@ -144,3 +144,10 @@ When `isolated-cache` is enabled, install/update commands receive package-specif
 | pnpm | `--store-dir <path>` |
 
 Use `clear-package-manager-cache` or `composer compile-assets --clear-package-manager-cache` to remove those isolated caches after successful package builds.
+
+## Production dependency policy
+
+`--mode production` or `--no-dev` requires a manager lockfile and frozen install.
+`dependencies: update` is rejected in production. Dependency lifecycle scripts
+are denied unless the root explicitly sets `allow-lifecycle-scripts: true`.
+Explicit requested build scripts run only after dependency installation.

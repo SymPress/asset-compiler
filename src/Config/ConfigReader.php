@@ -8,6 +8,7 @@ use Composer\Package\PackageInterface;
 use Composer\Package\RootPackageInterface;
 use InvalidArgumentException;
 use SymPress\AssetCompiler\PackageManager\PackageManager;
+use SymPress\AssetCompiler\Support\BuildEnvironment;
 use Symfony\Component\Serializer\Encoder\JsonDecode;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
 use Symfony\Component\Serializer\Exception\NotEncodableValueException;
@@ -32,7 +33,7 @@ final readonly class ConfigReader
 
     private JsonEncoder $json;
 
-    public function __construct(?string $mode, private bool $devMode)
+    public function __construct(private ?string $mode, private bool $devMode)
     {
         $this->modes = new ModeResolver($mode, $devMode);
         $this->json = new JsonEncoder(defaultContext: self::JSON_CONTEXT);
@@ -45,6 +46,8 @@ final readonly class ConfigReader
 
         return new RootConfig(
             rootPath: rtrim($rootPath, '/'),
+            production: !$this->devMode || $this->mode === 'production',
+            allowLifecycleScripts: $this->bool($this->value($data, 'allow-lifecycle-scripts'), false),
             autoRun: $this->bool($this->value($data, 'auto-run'), false),
             autoDiscover: $precompiling ? false : $this->envBool(
                 'COMPOSER_ASSET_COMPILER_AUTO_DISCOVER',
@@ -146,6 +149,7 @@ final readonly class ConfigReader
         }
 
         $env = array_replace($root->env, $this->env($this->value($base, 'default-env')));
+        $env = BuildEnvironment::configured($env);
         $scripts = $this->scripts($this->value($base, 'script'), $packageJson, $env);
         $dependencyMode = DependencyMode::fromMixed(
             $this->value($base, 'dependencies'),
@@ -154,6 +158,8 @@ final readonly class ConfigReader
 
         $config = new BuildConfig(
             scripts: $scripts,
+            production: $root->production,
+            allowLifecycleScripts: $root->allowLifecycleScripts,
             dependencyMode: $dependencyMode,
             packageManager: $this->packageManager($this->value($base, 'package-manager'), sprintf('%s package-manager', $package->getName())),
             packageManagerPreference: $root->packageManager,
@@ -308,9 +314,12 @@ final readonly class ConfigReader
             '/\$\{([A-Z0-9_]+)\}/i',
             static function (array $matches) use ($env): string {
                 $name = $matches[1];
-                $value = $env[$name] ?? getenv($name);
+                $value = $env[$name] ?? null;
+                if (!is_string($value)) {
+                    throw new InvalidArgumentException(sprintf('Unapproved or unresolved build environment variable %s.', $name));
+                }
 
-                return is_string($value) ? $value : '';
+                return $value;
             },
             $value,
         );

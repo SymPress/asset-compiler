@@ -16,6 +16,9 @@ The preferred key is nested under `extra.sympress.asset-compiler`:
 
 The flat key `extra.sympress.asset-compiler` is also supported. The legacy key `extra.composer-asset-compiler` is accepted for migration compatibility.
 
+The [root policy schema](asset-compiler.schema.json) describes the trust and
+installation settings. Remaining existing configuration keys remain supported.
+
 ## Root Keys
 
 | Key | Type | Default | Description |
@@ -31,6 +34,7 @@ The flat key `extra.sympress.asset-compiler` is also supported. The legacy key `
 | `clear-package-manager-cache` | boolean | `false` | Remove isolated npm/yarn/pnpm caches after a successful package build. Only applies when the package uses `isolated-cache`. |
 | `timeout-increment` | integer | `0` | Additional timeout seconds added progressively across the package plan. |
 | `package-manager` | string | auto-detected | Project-wide package-manager preference. Supports `npm`, `yarn`, and `pnpm`. Package-level config, `package.json` `packageManager`, and unambiguous lock files still win per package. npm remains the final fallback. Unsupported values fail early. |
+| `allow-lifecycle-scripts` | boolean | `false` | Root-only authorization for dependency install lifecycle scripts. Package metadata cannot enable it. |
 | `allow-package-config-files` | boolean | `false` | Allow package-local `asset-compiler.json` and `assets-compiler.json` files to override Composer `extra` for that package. Keep disabled for stricter supply-chain control. |
 | `require-precompiled-checksum` | boolean | `true` in `--no-dev`, otherwise `false` | Require SHA-256 checksums for remote precompiled archives. |
 | `package-types` | string list | WordPress package types | Local path package types considered during auto-discovery. |
@@ -188,7 +192,7 @@ The compiler reads these environment variables before root configuration is fina
 | `COMPOSER_ASSET_COMPILER_ALLOW_PACKAGE_CONFIG_FILES` | Override `allow-package-config-files`. |
 | `COMPOSER_ASSET_COMPILER_REQUIRE_PRECOMPILED_CHECKSUM` | Override `require-precompiled-checksum`. |
 
-Script strings may reference `${NAME}` placeholders. Values are resolved from merged `default-env` first and then from the process environment.
+Script strings may reference `${NAME}` placeholders. Values resolve only from approved merged `default-env`. Unresolved and protected placeholders fail without exposing their values. Inherited environment secrets cannot enter command arguments or verbose logs.
 
 ## Precompiled Assets
 
@@ -245,14 +249,34 @@ Precompiled downloads and extraction are intentionally bounded:
 
 Auto-discovery includes packages that have a readable `package.json` with a `scripts.build` entry and match the configured discovery policy.
 
-A package is included when:
+The root package and eligible Composer path packages retain default discovery.
+All downloaded vendor packages require an explicit enabled root `packages`
+selection before their package manifests/configuration are parsed. Package-owned
+metadata, `sympress/assets` requirements, custom types and kernel bundle metadata
+cannot authorize vendor execution. A root wildcard is explicit trust in all
+matching packages. Disabled matches win over enabled wildcards. CLI `--packages`
+only narrows discovered candidates and never grants trust.
 
-- It has explicit Composer `extra` asset-compiler package config.
-- Package config files are enabled and it has a package-local asset compiler config file.
-- It is explicitly listed in root `packages`.
-- Auto-discovery is enabled, it has a build script, and it is a local Composer path package with a configured package type.
-- Auto-discovery is enabled, it has a build script, and its Composer package requires `sympress/assets`.
-- Auto-discovery is enabled, it has a build script, and its Composer `extra.kernel.bundle` metadata is present.
+## Production installs and build environment
+
+`--mode production` and `--no-dev` require the selected manager's real lockfile
+and frozen installation; dependency `update` mode fails. The compiler freshness
+lock is independent of npm/pnpm/Yarn locks. npm and pnpm use `--ignore-scripts`
+by default; Yarn 1 uses `--ignore-scripts`, while Yarn 2+ uses
+`YARN_ENABLE_SCRIPTS=false` with `--immutable` and a build-phase skip flag
+(`--skip-builds` for Yarn 2, `--mode=skip-build` for Yarn 3+). Environment control
+alone does not stop workspace hooks. See the [Yarn install documentation](https://yarnpkg.com/cli/install). Yarn generation must be verified;
+unsupported modern isolated-cache flags fail without retrying legacy commands.
+Explicit build scripts remain authorized and can run their pre/postbuild hooks.
+
+Sequential/pool builds and version probes inherit only ordinary execution
+variables (PATH, HOME, temp paths, locale, terminal and CI). Install authentication,
+SSH agents, registry/cloud/database secrets and injection controls are removed.
+Protected names cannot be re-enabled by package or root metadata. Ordinary
+configured build variables remain available and explicit `false` unsets work.
+This filters environment inheritance; it does not sandbox filesystem/network
+access. Trusted build code can still read files accessible through HOME.
+
 
 ## Build Hashes
 
@@ -260,7 +284,7 @@ The build hash includes:
 
 - Composer package name, explicit package-manager name, and root package-manager preference.
 - The resolved package manager, its version, the Node.js version, and why the manager was selected.
-- Dependency mode.
+- Dependency mode, production/lifecycle policy and environment policy version.
 - Configured scripts and environment.
 - Precompiled asset configuration.
 - `composer.json`, `package.json`, common lock files, and frontend config files.

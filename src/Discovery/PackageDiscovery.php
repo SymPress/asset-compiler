@@ -63,8 +63,11 @@ final readonly class PackageDiscovery
                 continue;
             }
 
-            $packageJson = $this->packageJson($path);
             $selection = $this->selection($package->getName());
+            if ($selection?->disabled || (!$selection?->explicit && $package->getDistType() !== 'path')) {
+                continue;
+            }
+            $packageJson = $this->packageJson($path);
 
             if ($selection instanceof RootPackageSelection && $selection->pattern !== '') {
                 $matchedPatterns[$selection->pattern] = true;
@@ -231,6 +234,10 @@ final readonly class PackageDiscovery
             return $packageJson !== [];
         }
 
+        if ($package->getDistType() !== 'path') {
+            return false;
+        }
+
         $path = $this->pathForPackage($package);
         $packageExtra = $this->configReader->packageExtra(
             $package,
@@ -255,15 +262,19 @@ final readonly class PackageDiscovery
 
     private function selection(string $packageName): ?RootPackageSelection
     {
+        $selected = null;
         foreach ($this->rootConfig->packages as $pattern => $raw) {
             if (!$this->matches($packageName, $pattern)) {
                 continue;
             }
-
-            return $this->selectionFromRaw($pattern, $raw);
+            $selection = $this->selectionFromRaw($pattern, $raw);
+            if ($selection->disabled) {
+                return $selection;
+            }
+            $selected ??= $selection;
         }
 
-        return null;
+        return $selected;
     }
 
     private function selectionFromRaw(string $pattern, mixed $raw): RootPackageSelection
@@ -343,7 +354,7 @@ final readonly class PackageDiscovery
 
     private function isProjectPackage(PackageInterface $package): bool
     {
-        if ($this->requiresAssetsPackage($package) || $this->hasKernelMetadata($package)) {
+        if ($package->getDistType() === 'path' && ($this->requiresAssetsPackage($package) || $this->hasKernelMetadata($package))) {
             return true;
         }
 

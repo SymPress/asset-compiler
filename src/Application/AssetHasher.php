@@ -78,6 +78,9 @@ final readonly class AssetHasher
     {
         $files = $this->files($workspace);
         $context = [
+            'environment-policy'       => 1,
+            'production'               => $workspace->build->production,
+            'allow-lifecycle-scripts'  => $workspace->build->allowLifecycleScripts,
             'package'                  => $workspace->name,
             'manager'                  => $workspace->build->packageManager,
             'manager-preference'       => $workspace->build->packageManagerPreference,

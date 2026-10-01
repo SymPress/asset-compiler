@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sympress.de/schemas/asset-compiler.schema.json",
+  "title": "SymPress asset compiler root configuration",
+  "type": "object",
+  "properties": {
+    "allow-lifecycle-scripts": {"type": "boolean", "default": false},
+    "allow-package-config-files": {"type": "boolean", "default": false},
+    "default-env": {"type": "object", "additionalProperties": {"anyOf": [{"type": "string"}, {"const": false}]}},
+    "packages": {
+      "type": "object",
+      "description": "Root trust allowlist. Disabled matches win. Wildcards explicitly trust all matching downloaded packages.",
+      "additionalProperties": {"type": ["boolean", "string", "array", "object"]}
+    }
+  },
+  "additionalProperties": true
+}

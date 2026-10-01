@@ -99,6 +99,42 @@ final class TaskRunnerTest extends TestCase
         self::assertDirectoryDoesNotExist($cacheDirectory);
     }
 
+    public function testSecretsAreAbsentInSequentialStagedPoolAndGroupedPoolSteps(): void
+    {
+        $workspace = $this->workspace();
+        $previous = getenv('COMPOSER_AUTH');
+        $agent = getenv('SSH_AUTH_SOCK');
+        try {
+            putenv('COMPOSER_AUTH=canary-secret');
+            putenv('SSH_AUTH_SOCK=/canary-agent');
+            foreach ([RootConfig::EXECUTION_STRATEGY_STAGED, RootConfig::EXECUTION_STRATEGY_GROUPED] as $strategy) {
+                $steps = [];
+                foreach ([false, true] as $parallel) {
+                    $steps[] = new BuildStep('environment probe', [PHP_BINARY, '-r', 'if(getenv("COMPOSER_AUTH")!==false || getenv("SSH_AUTH_SOCK")!==false || getenv("BUILD_MARKER")!=="approved")exit(7);'], $workspace->path, 10, ['BUILD_MARKER' => 'approved'], $parallel);
+                }
+                $task = new BuildTask($workspace, 'hash', $steps);
+                $result = new TaskRunner(new BufferIO())->run([$task], $this->rootConfig(false, executionStrategy: $strategy));
+                self::assertSame(0, $result->failed);
+                self::assertCount(1, $result->successfulWorkspaces);
+            }
+        } finally {
+            putenv($previous === false ? 'COMPOSER_AUTH' : 'COMPOSER_AUTH=' . $previous);
+            putenv($agent === false ? 'SSH_AUTH_SOCK' : 'SSH_AUTH_SOCK=' . $agent);
+        }
+    }
+
+    public function testNonzeroAndInterruptedChildrenNeverProduceSuccessfulHashes(): void
+    {
+        $workspace = $this->workspace();
+        foreach (['exit(7);', 'posix_kill(getmypid(), SIGTERM);'] as $program) {
+            $task = new BuildTask($workspace, 'hash', [new BuildStep('failure probe', [PHP_BINARY, '-r', $program], $workspace->path, 10)]);
+            $result = new TaskRunner(new BufferIO())->run([$task], $this->rootConfig(false));
+            self::assertSame(1, $result->failed);
+            self::assertSame([], $result->hashes);
+            self::assertSame([], $result->successfulWorkspaces);
+        }
+    }
+
     private function workspace(bool $isolatedCache = false): PackageWorkspace
     {
         $this->workspacePath = sys_get_temp_dir() . '/sympress_asset_compiler_runner_' . bin2hex(random_bytes(8));
