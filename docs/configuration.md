@@ -292,3 +292,9 @@ The build hash includes:
 - Configured `src-paths` when a package needs to override the automatic inputs.
 
 Fresh packages are skipped unless `--ignore-lock` matches the package name.
+
+### Root build orchestration
+
+The `packages` selection also applies to the root Composer package. Set its name to `false` when the root npm build orchestrates Composer installation or `compile-assets`, rather than compiling its own assets. For example, `"packages": {"sympress/demo": false, "sympress/demo-plugin": true}` compiles only the feature plugin.
+
+Every asset dependency/build child inherits the reserved `SYMPRESS_ASSET_COMPILER_ACTIVE=1` marker. Nested Composer automatic compilation is skipped; an explicit nested `compile-assets` invocation fails before discovery, installation or lock writes. Package environment configuration cannot replace or remove the marker. Deployment wrappers that change Composer dependencies must reject a nonempty marker before any command runs. This prevents accidental recursion by trusted scripts; build scripts remain trusted executable code.

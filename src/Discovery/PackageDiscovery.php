@@ -54,6 +54,10 @@ final readonly class PackageDiscovery
 
         if ($rootWorkspace instanceof PackageWorkspace) {
             $workspaces[$rootWorkspace->name] = $rootWorkspace;
+            $selection = $this->selection($rootPackage->getName());
+            if ($selection instanceof RootPackageSelection && $selection->pattern !== '') {
+                $matchedPatterns[$selection->pattern] = true;
+            }
         }
 
         foreach ($this->repository->getPackages() as $package) {
@@ -114,6 +118,11 @@ final readonly class PackageDiscovery
 
     private function workspaceForRootPackage(RootPackageInterface $package): ?PackageWorkspace
     {
+        $selection = $this->selection($package->getName());
+        if ($selection?->disabled) {
+            return null;
+        }
+
         $packageJson = $this->packageJson($this->rootConfig->rootPath);
 
         if ($packageJson === []) {
@@ -124,8 +133,8 @@ final readonly class PackageDiscovery
             $package,
             $this->rootConfig,
             $packageJson,
-            null,
-            false,
+            $selection?->override,
+            $selection instanceof RootPackageSelection && $selection->forceDefaults,
             $this->rootConfig->rootPath,
         );
 
