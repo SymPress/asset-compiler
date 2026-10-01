@@ -42,11 +42,11 @@ final class BuildEnvironment
             $result[$name] = false;
         }
 
-        return array_replace($result, self::configured($environment));
+        return array_replace($result, self::configured($environment), [CompilationGuard::ENVIRONMENT_VARIABLE => '1']);
     }
 
     private static function protected(string $name): bool
     {
-        return preg_match('/AUTH|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|PRIVATE|(^|_)KEY($|_)|SSH_|^AWS_|^AZURE_|^GOOGLE_|^GIT_|^COMPOSER_|^NPM_CONFIG_|^YARN_|^PNPM_|^DATABASE_|^DB_|^BASH_ENV$|^ENV$|^LD_|^DYLD_|^NODE_OPTIONS$|^PYTHONPATH$|^PHP_INI_SCAN_DIR$/i', $name) === 1;
+        return strcasecmp($name, CompilationGuard::ENVIRONMENT_VARIABLE) === 0 || preg_match('/AUTH|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|PRIVATE|(^|_)KEY($|_)|SSH_|^AWS_|^AZURE_|^GOOGLE_|^GIT_|^COMPOSER_|^NPM_CONFIG_|^YARN_|^PNPM_|^DATABASE_|^DB_|^BASH_ENV$|^ENV$|^LD_|^DYLD_|^NODE_OPTIONS$|^PYTHONPATH$|^PHP_INI_SCAN_DIR$/i', $name) === 1;
     }
 }

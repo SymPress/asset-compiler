@@ -12,6 +12,7 @@ use SymPress\AssetCompiler\Discovery\PackageWorkspace;
 use SymPress\AssetCompiler\PackageManager\PackageManagerResolution;
 use SymPress\AssetCompiler\PackageManager\PackageManagerResolver;
 use SymPress\AssetCompiler\Precompiled\PrecompiledAssetInstaller;
+use SymPress\AssetCompiler\Support\CompilationGuard;
 
 final readonly class AssetCompiler
 {
@@ -44,6 +45,8 @@ final readonly class AssetCompiler
         ?bool $clearPackageManagerCache = null,
         ?string $executionStrategy = null,
     ): CompilationResult {
+
+        CompilationGuard::assertAllowed();
 
         $runtimeConfig = $this->rootConfig->withRuntimeOverrides(
             maxProcesses: $maxProcesses,

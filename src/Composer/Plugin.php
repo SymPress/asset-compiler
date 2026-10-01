@@ -16,6 +16,7 @@ use RuntimeException;
 use SymPress\AssetCompiler\Application\AssetCompiler;
 use SymPress\AssetCompiler\Application\CompilerFactory;
 use SymPress\AssetCompiler\Config\RootConfig;
+use SymPress\AssetCompiler\Support\CompilationGuard;
 
 final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
 {
@@ -78,7 +79,7 @@ final class Plugin implements PluginInterface, EventSubscriberInterface, Capable
         $composer = $this->composer;
         $io = $this->io;
 
-        if (!$composer instanceof Composer || !$io instanceof IOInterface) {
+        if (CompilationGuard::active() || !$composer instanceof Composer || !$io instanceof IOInterface) {
             return;
         }
 

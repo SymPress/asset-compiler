@@ -54,11 +54,31 @@ final class PackageDiscoveryTest extends TestCase
         self::assertSame(['root/project', 'vendor/local'], $this->discover($path));
     }
 
+    public function testRootCanBeDisabledBeforeItsManifestIsParsed(): void
+    {
+        $path = new Package('vendor/local', 'dev-main', 'dev-main');
+        $path->setType('wordpress-plugin');
+        $path->setDistType('path');
+        file_put_contents($this->workspace . '/package.json', 'malformed');
+        self::assertSame(['vendor/local'], $this->discover($path, ['root/project' => false]));
+        self::assertSame(['vendor/local'], $this->discover($path, ['root/*' => 'disabled']));
+    }
+
+    public function testExplicitRootSelectionCountsAsFoundAndOverridesItsScript(): void
+    {
+        $path = new Package('vendor/local', 'dev-main', 'dev-main');
+        $path->setType('wordpress-plugin');
+        $path->setDistType('path');
+        self::assertSame(['root/project', 'vendor/local'], $this->discover($path, ['root/project' => true]));
+        self::assertSame(['root/project', 'vendor/local'], $this->discover($path, ['root/project' => ['script' => 'custom']], ['custom']));
+    }
+
     /**
      * @param array<string, mixed> $selection
+     * @param list<string>|null $expectedRootScripts
      * @return list<string>
      */
-    private function discover(Package $dependency, array $selection = []): array
+    private function discover(Package $dependency, array $selection = [], ?array $expectedRootScripts = null): array
     {
         $root = new RootPackage('root/project', 'dev-main', 'dev-main');
         $root->setExtra(['sympress.asset-compiler' => ['packages' => $selection]]);
@@ -73,6 +93,11 @@ final class PackageDiscoveryTest extends TestCase
         $reader = new ConfigReader(null, true);
         $discovery = new PackageDiscovery($composer, $reader, $reader->rootConfig($root, $this->workspace));
 
-        return array_map(static fn ($package): string => $package->name, $discovery->discover());
+        $workspaces = $discovery->discover();
+        if ($expectedRootScripts !== null) {
+            self::assertSame($expectedRootScripts, $workspaces[0]->build->scripts);
+        }
+
+        return array_map(static fn ($package): string => $package->name, $workspaces);
     }
 }

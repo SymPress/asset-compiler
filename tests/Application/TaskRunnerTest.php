@@ -110,7 +110,7 @@ final class TaskRunnerTest extends TestCase
             foreach ([RootConfig::EXECUTION_STRATEGY_STAGED, RootConfig::EXECUTION_STRATEGY_GROUPED] as $strategy) {
                 $steps = [];
                 foreach ([false, true] as $parallel) {
-                    $steps[] = new BuildStep('environment probe', [PHP_BINARY, '-r', 'if(getenv("COMPOSER_AUTH")!==false || getenv("SSH_AUTH_SOCK")!==false || getenv("BUILD_MARKER")!=="approved")exit(7);'], $workspace->path, 10, ['BUILD_MARKER' => 'approved'], $parallel);
+                    $steps[] = new BuildStep('environment probe', [PHP_BINARY, '-r', 'if(getenv("COMPOSER_AUTH")!==false || getenv("SSH_AUTH_SOCK")!==false || getenv("BUILD_MARKER")!=="approved" || getenv("SYMPRESS_ASSET_COMPILER_ACTIVE")!=="1")exit(7);'], $workspace->path, 10, ['BUILD_MARKER' => 'approved'], $parallel);
                 }
                 $task = new BuildTask($workspace, 'hash', $steps);
                 $result = new TaskRunner(new BufferIO())->run([$task], $this->rootConfig(false, executionStrategy: $strategy));
@@ -120,6 +120,22 @@ final class TaskRunnerTest extends TestCase
         } finally {
             putenv($previous === false ? 'COMPOSER_AUTH' : 'COMPOSER_AUTH=' . $previous);
             putenv($agent === false ? 'SSH_AUTH_SOCK' : 'SSH_AUTH_SOCK=' . $agent);
+        }
+    }
+
+    public function testNestedCompilationFailsTheBuildBeforeMutation(): void
+    {
+        $workspace = $this->workspace();
+        $autoload = dirname(__DIR__, 2) . '/vendor/autoload.php';
+        $script = 'require ' . var_export($autoload, true) . '; \SymPress\AssetCompiler\Support\CompilationGuard::assertAllowed(); file_put_contents("nested-mutation", "unsafe");';
+        foreach ([RootConfig::EXECUTION_STRATEGY_STAGED, RootConfig::EXECUTION_STRATEGY_GROUPED] as $strategy) {
+            $io = new BufferIO();
+            $task = new BuildTask($workspace, 'hash', [new BuildStep('nested compiler', [PHP_BINARY, '-r', $script], $workspace->path, 10)]);
+            $result = new TaskRunner($io)->run([$task], $this->rootConfig(false, executionStrategy: $strategy));
+            self::assertSame(1, $result->failed);
+            self::assertCount(0, $result->successfulWorkspaces);
+            self::assertFileDoesNotExist($workspace->path . '/nested-mutation');
+            self::assertStringContainsString('Nested asset compilation', $io->getOutput());
         }
     }
 
