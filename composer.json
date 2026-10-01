@@ -24,7 +24,7 @@
     "require-dev": {
         "composer/composer": "^2.10",
         "friendsofphp/php-cs-fixer": "^3.89",
-        "sympress/qa": "dev-main"
+        "sympress/qa": "^0.1.2"
     },
     "autoload": {
         "psr-4": {
@@ -68,15 +68,6 @@
             "phpstan/extension-installer": true
         }
     },
-    "minimum-stability": "dev",
-    "prefer-stable": true,
-    "repositories": [
-        {
-            "type": "path",
-            "url": "./../*",
-            "options": {
-                "symlink": true
-            }
-        }
-    ]
+    "minimum-stability": "stable",
+    "prefer-stable": true
 }
