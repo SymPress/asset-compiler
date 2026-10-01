@@ -14,6 +14,37 @@ use SymPress\AssetCompiler\Config\RootConfig;
 
 final class ConfigReaderTest extends TestCase
 {
+    public function testInheritedSecretCannotBeInterpolatedIntoCommandArguments(): void
+    {
+        $rootPackage = new RootPackage('acme/root', 'dev-main', 'dev-main');
+        $reader = new ConfigReader(null, true);
+        $root = $reader->rootConfig($rootPackage, '/project');
+        $package = new Package('acme/package', 'dev-main', 'dev-main');
+        $package->setExtra([RootConfig::EXTRA_KEY => ['script' => 'build -- ${GITHUB_TOKEN}']]);
+        $previous = getenv('GITHUB_TOKEN');
+        try {
+            putenv('GITHUB_TOKEN=must-not-enter-argv');
+            $this->expectException(InvalidArgumentException::class);
+            $reader->buildConfig($package, $root, ['scripts' => ['build' => 'echo build']], null, false);
+        } finally {
+            putenv($previous === false ? 'GITHUB_TOKEN' : 'GITHUB_TOKEN=' . $previous);
+        }
+    }
+
+    public function testProductionAndLifecyclePolicyAreRootOnly(): void
+    {
+        $rootPackage = new RootPackage('acme/root', 'dev-main', 'dev-main');
+        $reader = new ConfigReader('production', true);
+        $root = $reader->rootConfig($rootPackage, '/project');
+        $package = new Package('acme/package', 'dev-main', 'dev-main');
+        $package->setExtra([RootConfig::EXTRA_KEY => ['allow-lifecycle-scripts' => true]]);
+        $build = $reader->buildConfig($package, $root, ['scripts' => ['build' => 'echo build']], null, false);
+        self::assertNotNull($build);
+        self::assertTrue($build->production);
+        self::assertFalse($build->allowLifecycleScripts);
+        self::assertTrue(new ConfigReader(null, false)->rootConfig($rootPackage, '/project')->production);
+    }
+
     public function testMinimalRootConfigUsesBuiltInDefaults(): void
     {
         $package = new RootPackage('acme/root', '1.0.0.0', '1.0.0');
@@ -67,7 +98,7 @@ final class ConfigReaderTest extends TestCase
         ]);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Unsupported asset compiler execution-strategy');
+        $this->expectExceptionMessageMatches('/Unsupported\ asset\ compiler\ execution\-strategy/');
 
         new ConfigReader(null, true)->rootConfig($package, '/project');
     }
@@ -215,8 +246,8 @@ final class ConfigReaderTest extends TestCase
             file_put_contents($path . '/asset-compiler.json', '{"script":');
 
             $this->expectException(InvalidArgumentException::class);
-            $this->expectExceptionMessage('Could not deserialize JSON for asset compiler config file');
-            $this->expectExceptionMessage('Syntax error');
+            $this->expectExceptionMessageMatches('/Could\ not\ deserialize\ JSON\ for\ asset\ compiler\ config\ file/');
+            $this->expectExceptionMessageMatches('/Syntax\ error/');
 
             new ConfigReader(null, true)->packageExtra(
                 new Package('acme/package', '1.0.0.0', '1.0.0'),
@@ -286,7 +317,7 @@ final class ConfigReaderTest extends TestCase
         ]);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Unsupported asset compiler root package-manager');
+        $this->expectExceptionMessageMatches('/Unsupported\ asset\ compiler\ root\ package\-manager/');
 
         new ConfigReader(null, true)->rootConfig($package, '/project');
     }
@@ -320,7 +351,7 @@ final class ConfigReaderTest extends TestCase
         ]);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Unsupported precompiled asset adapter');
+        $this->expectExceptionMessageMatches('/Unsupported\ precompiled\ asset\ adapter/');
 
         new ConfigReader(null, true)->buildConfig($package, $root, ['scripts' => ['build' => 'webpack']], null, false);
     }

@@ -30,6 +30,19 @@ final class AssetHasherTest extends TestCase
         new Filesystem()->remove($this->workspacePath);
     }
 
+    public function testProductionAndLifecyclePoliciesInvalidateFreshnessHashes(): void
+    {
+        $workspace = $this->workspace();
+        $hasher = new AssetHasher(new BufferIO());
+        $before = $hasher->hash($workspace);
+        foreach ([[true, false], [false, true]] as [$production, $lifecycle]) {
+            $config = $workspace->build;
+            $build = new BuildConfig($config->scripts, $config->dependencyMode, $config->packageManager, $config->packageManagerPreference, $config->env, $config->sourcePaths, $config->timeout, production: $production, allowLifecycleScripts: $lifecycle);
+            $changed = new PackageWorkspace($workspace->name, $workspace->type, $workspace->path, $build, $workspace->packageJson);
+            self::assertNotSame($before, $hasher->hash($changed));
+        }
+    }
+
     public function testResolvedPackageManagerInvalidatesHash(): void
     {
         $workspace = $this->workspace();
@@ -88,8 +101,7 @@ final class AssetHasherTest extends TestCase
         ]);
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Could not serialize JSON for asset hash context for vendor/package');
-        $this->expectExceptionMessage('Recursion detected');
+        $this->expectExceptionMessageMatches('/Could\ not\ serialize\ JSON\ for\ asset\ hash\ context\ for\ vendor\/package.*Recursion\ detected/');
 
         new AssetHasher(new BufferIO())->hash($workspace);
     }

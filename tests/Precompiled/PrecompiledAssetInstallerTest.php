@@ -73,7 +73,7 @@ final class PrecompiledAssetInstallerTest extends TestCase
         $workspace = $this->workspace($archive);
 
         $this->expectException(PrecompiledAssetSecurityException::class);
-        $this->expectExceptionMessage('unsafe entry path');
+        $this->expectExceptionMessageMatches('/unsafe\ entry\ path/');
 
         $this->installer()->install($workspace);
     }
@@ -118,7 +118,7 @@ final class PrecompiledAssetInstallerTest extends TestCase
         $workspace = $this->workspace('http://example.test/assets.zip');
 
         $this->expectException(PrecompiledAssetSecurityException::class);
-        $this->expectExceptionMessage('Insecure non-HTTPS precompiled asset source');
+        $this->expectExceptionMessageMatches('/Insecure\ non\-HTTPS\ precompiled\ asset\ source/');
 
         $this->installer()->install($workspace);
     }
@@ -128,7 +128,7 @@ final class PrecompiledAssetInstallerTest extends TestCase
         $workspace = $this->workspace('https://example.test/assets.zip', requireChecksum: true);
 
         $this->expectException(PrecompiledAssetSecurityException::class);
-        $this->expectExceptionMessage('Missing SHA-256 checksum');
+        $this->expectExceptionMessageMatches('/Missing\ SHA\-256\ checksum/');
 
         $this->installer()->install($workspace);
     }

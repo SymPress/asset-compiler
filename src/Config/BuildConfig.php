@@ -23,6 +23,8 @@ final readonly class BuildConfig
         public bool $isolatedCache = false,
         public array $precompiledAssets = [],
         public bool $requirePrecompiledChecksum = false,
+        public bool $production = false,
+        public bool $allowLifecycleScripts = false,
     ) {
     }
 

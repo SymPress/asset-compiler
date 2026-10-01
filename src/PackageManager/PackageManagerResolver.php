@@ -7,6 +7,7 @@ namespace SymPress\AssetCompiler\PackageManager;
 use Closure;
 use RuntimeException;
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
+use SymPress\AssetCompiler\Support\BuildEnvironment;
 use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
 
@@ -45,7 +46,7 @@ final class PackageManagerResolver
 
             if ($this->isAvailable($name)) {
                 return new PackageManagerResolution(
-                    new PackageManager($name),
+                    new PackageManager($name, $this->version($name)),
                     $reason,
                     $this->version($name),
                     $this->version('node'),
@@ -141,7 +142,7 @@ final class PackageManagerResolver
             return null;
         }
 
-        $process = new Process([$executable, '--version'], null, null, null, 10);
+        $process = new Process([$executable, '--version'], null, BuildEnvironment::process([]), null, 10);
         $process->run();
 
         if (!$process->isSuccessful()) {

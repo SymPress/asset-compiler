@@ -43,6 +43,8 @@ final readonly class RootConfig
         public bool $requirePrecompiledChecksum = false,
         public bool $clearPackageManagerCache = false,
         public string $executionStrategy = self::EXECUTION_STRATEGY_STAGED,
+        public bool $production = false,
+        public bool $allowLifecycleScripts = false,
     ) {
     }
 
@@ -73,6 +75,8 @@ final readonly class RootConfig
 
         return new self(
             rootPath: $this->rootPath,
+            production: $this->production,
+            allowLifecycleScripts: $this->allowLifecycleScripts,
             autoRun: $this->autoRun,
             autoDiscover: $this->autoDiscover,
             stopOnFailure: $this->stopOnFailure,

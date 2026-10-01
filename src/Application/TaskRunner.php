@@ -8,7 +8,9 @@ use Composer\IO\IOInterface;
 use SplQueue;
 use SymPress\AssetCompiler\Config\RootConfig;
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
+use SymPress\AssetCompiler\Support\BuildEnvironment;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Process\Exception\ProcessSignaledException;
 use Symfony\Component\Process\Process;
 
 final readonly class TaskRunner
@@ -159,8 +161,14 @@ final readonly class TaskRunner
             IOInterface::VERBOSE,
         );
 
-        $process = new Process($step->command, $step->workingDirectory, $step->environment, null, $step->timeout);
-        $process->run($this->output(...));
+        $process = new Process($step->command, $step->workingDirectory, BuildEnvironment::process($step->environment), null, $step->timeout);
+        try {
+            $process->run($this->output(...));
+        } catch (ProcessSignaledException) {
+            $this->io->writeError(sprintf('Asset command interrupted for %s.', $packageName));
+
+            return false;
+        }
 
         if (!$process->isSuccessful()) {
             $this->io->writeError(
@@ -325,7 +333,7 @@ final readonly class TaskRunner
         $task->process = new Process(
             $step->command,
             $step->workingDirectory,
-            $step->environment,
+            BuildEnvironment::process($step->environment),
             null,
             $step->timeout,
         );
