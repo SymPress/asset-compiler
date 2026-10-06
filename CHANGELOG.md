@@ -4,7 +4,12 @@ All notable changes to this package will be documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions should follow semantic versioning.
 
-## [Unreleased]
+## 1.0.3 — 2026-10-06
+
+- Read ZIP streams by their original entry index while normalizing only output paths. Leading-dot and backslash entry names retain their contents.
+- Abort unreadable entries before replacing the installed asset directory, preserving the previous usable assets.
+
+## Earlier changes
 
 ### Added
 
