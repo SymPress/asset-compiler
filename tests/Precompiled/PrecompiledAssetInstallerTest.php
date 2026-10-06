@@ -52,6 +52,39 @@ final class PrecompiledAssetInstallerTest extends TestCase
         self::assertFileExists($workspace->path . '/assets/manifest.json');
     }
 
+    public function testReadsOriginalEntriesWhileNormalizingDestinationPaths(): void
+    {
+        $archive = $this->archive(['./app.js' => 'prefixed', 'nested\\app.js' => 'backslash']);
+        $workspace = $this->workspace($archive);
+        mkdir($workspace->path . '/assets');
+        file_put_contents($workspace->path . '/assets/old.js', 'old');
+
+        self::assertTrue($this->installer()->install($workspace));
+        self::assertSame('prefixed', file_get_contents($workspace->path . '/assets/app.js'));
+        self::assertSame('backslash', file_get_contents($workspace->path . '/assets/nested/app.js'));
+        self::assertFileDoesNotExist($workspace->path . '/assets/old.js');
+    }
+
+    public function testUnreadableEntryPreservesExistingAssets(): void
+    {
+        $archive = $this->archive(['app.js' => 'encrypted']);
+        $zip = new ZipArchive();
+        self::assertTrue($zip->open($archive));
+        self::assertTrue($zip->setEncryptionName('app.js', ZipArchive::EM_AES_256, 'fixture-password'));
+        $zip->close();
+        $workspace = $this->workspace($archive);
+        mkdir($workspace->path . '/assets');
+        file_put_contents($workspace->path . '/assets/old.js', 'keep');
+
+        $this->expectException(\RuntimeException::class);
+        try {
+            new ArchiveExtractor(new Filesystem())->extract($archive, $workspace->path . '/assets', true);
+        } finally {
+            self::assertSame('keep', file_get_contents($workspace->path . '/assets/old.js'));
+            self::assertFileDoesNotExist($workspace->path . '/assets/app.js');
+        }
+    }
+
     public function testRejectsChecksumMismatch(): void
     {
         $archive = $this->archive(['manifest.json' => '{"ok":true}']);

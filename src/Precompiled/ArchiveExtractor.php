@@ -81,10 +81,13 @@ final readonly class ArchiveExtractor
                 }
 
                 $this->filesystem->mkdir(dirname($targetPath));
-                $source = $zip->getStream($name);
+                // The normalized destination is not the entry's actual ZIP name.
+                // Read by index so ./ prefixes, backslashes and duplicate names
+                // cannot select a different entry or silently skip an asset.
+                $source = $zip->getStreamIndex($index);
 
                 if ($source === false) {
-                    continue;
+                    throw new RuntimeException(sprintf('Could not read precompiled asset entry at index %d.', $index));
                 }
 
                 $destination = fopen($targetPath, 'wb');
