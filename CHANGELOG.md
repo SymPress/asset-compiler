@@ -4,6 +4,10 @@ All notable changes to this package will be documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions should follow semantic versioning.
 
+## 1.0.4 — 2026-10-09
+
+- Exclude Symfony Process versions affected by CVE-2026-24739 while retaining patched 5.4, 6.4, 7.3, 7.4 and 8.x compatibility. Unsupported 7.1 and 7.2 releases are no longer accepted.
+
 ## 1.0.3 — 2026-10-06
 
 - Read ZIP streams by their original entry index while normalizing only output paths. Leading-dot and backslash entry names retain their contents.
