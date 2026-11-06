@@ -16,10 +16,10 @@
         "ext-curl": "*",
         "ext-json": "*",
         "ext-zip": "*",
-        "symfony/filesystem": "^8.0",
+        "symfony/filesystem": "^8.1.11",
         "symfony/finder": "^8.0",
         "symfony/process": "^5.4.51 || ^6.4.33 || ~7.3.11 || ^7.4.5 || ^8.0.5",
-        "symfony/serializer": "^8.0"
+        "symfony/serializer": "^8.1.11"
     },
     "require-dev": {
         "composer/composer": "^2.10",
