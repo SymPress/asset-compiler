@@ -10,6 +10,7 @@ use SymPress\AssetCompiler\Config\BuildConfig;
 use SymPress\AssetCompiler\Config\DependencyMode;
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
 use SymPress\AssetCompiler\PackageManager\PackageManager;
+use SymPress\AssetCompiler\Support\PrivateTempDirectory;
 
 final class BuildStepFactoryTest extends TestCase
 {
@@ -79,7 +80,7 @@ final class BuildStepFactoryTest extends TestCase
         $steps = BuildStepFactory::create($workspace, new PackageManager(PackageManager::NPM), true);
 
         self::assertContains('--cache', $steps[0]->command);
-        self::assertStringContainsString('/sympress-asset-compiler/cache/', implode(' ', $steps[0]->command));
+        self::assertContains(PrivateTempDirectory::path() . '/cache/' . sha1($workspace->name), $steps[0]->command);
     }
 
     public function testTimeoutIncrementIsAddedToSteps(): void

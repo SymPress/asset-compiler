@@ -9,6 +9,7 @@ use SymPress\AssetCompiler\Config\BuildConfig;
 use SymPress\AssetCompiler\Config\DependencyMode;
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
 use SymPress\AssetCompiler\PackageManager\PackageManager;
+use SymPress\AssetCompiler\Support\PrivateTempDirectory;
 
 final class PackageManagerTest extends TestCase
 {
@@ -50,12 +51,12 @@ final class PackageManagerTest extends TestCase
         );
     }
 
-    public function testYarnInstallUsesSharedMutex(): void
+    public function testYarnInstallUsesPrivateMutex(): void
     {
         $workspace = $this->workspace();
 
         self::assertSame(
-            ['yarn', 'install', '--mutex', 'file:/tmp/sympress-asset-compiler-yarn.lock', '--ignore-scripts'],
+            ['yarn', 'install', '--mutex', 'file:' . PrivateTempDirectory::path() . '/yarn.lock', '--ignore-scripts'],
             new PackageManager(PackageManager::YARN, '1.22.22')->installCommand($workspace),
         );
     }

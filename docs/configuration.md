@@ -29,7 +29,7 @@ installation settings. Remaining existing configuration keys remain supported.
 | `max-processes` | integer | `4` | Number of package builds to run in parallel. Values are clamped to `1..8`. |
 | `execution-strategy` | string | `staged` | Process scheduling strategy. Supports `staged` and `grouped`. |
 | `process-poll` | integer | `100000` | Poll interval in microseconds for parallel process execution. |
-| `isolated-cache` | boolean | `false` | Use package-specific npm/yarn/pnpm cache directories below the system temp directory. |
+| `isolated-cache` | boolean | `false` | Use package-specific npm/yarn/pnpm cache directories inside a private per-user directory (`sympress-asset-compiler-<uid>`, mode `0700`) below the system temp directory. |
 | `wipe-node-modules` | boolean | `false` | Remove `node_modules` after a successful package build when the compiler created it during the run. |
 | `clear-package-manager-cache` | boolean | `false` | Remove isolated npm/yarn/pnpm caches after a successful package build. Only applies when the package uses `isolated-cache`. |
 | `timeout-increment` | integer | `0` | Additional timeout seconds added progressively across the package plan. |

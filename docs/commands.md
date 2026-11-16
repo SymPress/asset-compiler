@@ -135,7 +135,7 @@ Script commands support arguments by separating the script name from arguments w
 }
 ```
 
-When `isolated-cache` is enabled, install/update commands receive package-specific cache flags:
+When `isolated-cache` is enabled, install/update commands receive package-specific cache flags. The caches, like the Yarn classic `--mutex` file, live in a private per-user directory `sympress-asset-compiler-<uid>` below the system temp directory. The compiler creates it with mode `0700` and refuses to use it when it is a symlink or owned by another user:
 
 | Manager | Cache flag |
 | --- | --- |
