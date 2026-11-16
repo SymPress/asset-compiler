@@ -7,6 +7,7 @@ namespace SymPress\AssetCompiler\Application;
 use SymPress\AssetCompiler\Config\DependencyMode;
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
 use SymPress\AssetCompiler\PackageManager\PackageManager;
+use SymPress\AssetCompiler\Support\PrivateTempDirectory;
 
 final class BuildStepFactory
 {
@@ -57,6 +58,6 @@ final class BuildStepFactory
 
     public static function cacheDirectoryFor(PackageWorkspace $workspace): string
     {
-        return rtrim(sys_get_temp_dir(), '/') . '/sympress-asset-compiler/cache/' . sha1($workspace->name);
+        return PrivateTempDirectory::path() . '/cache/' . sha1($workspace->name);
     }
 }

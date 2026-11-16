@@ -6,12 +6,11 @@ namespace SymPress\AssetCompiler\PackageManager;
 
 use RuntimeException;
 use SymPress\AssetCompiler\Discovery\PackageWorkspace;
+use SymPress\AssetCompiler\Support\PrivateTempDirectory;
 use SymPress\AssetCompiler\Support\StringList;
 
 final readonly class PackageManager
 {
-    private const string YARN_MUTEX = 'file:/tmp/sympress-asset-compiler-yarn.lock';
-
     public const string NPM = 'npm';
 
     public const string YARN = 'yarn';
@@ -38,7 +37,7 @@ final readonly class PackageManager
         $command = match ($this->name) {
             self::YARN => $modernYarn
                 ? ['env', 'YARN_ENABLE_SCRIPTS=' . ($workspace->build->allowLifecycleScripts ? 'true' : 'false'), 'yarn', 'install', '--immutable']
-                : array_merge(['yarn', 'install'], $locked ? ['--frozen-lockfile'] : [], ['--mutex', self::YARN_MUTEX]),
+                : array_merge(['yarn', 'install'], $locked ? ['--frozen-lockfile'] : [], ['--mutex', self::yarnMutex()]),
             self::PNPM => array_merge(['pnpm', 'install'], $locked ? ['--frozen-lockfile'] : []),
             default => $locked ? ['npm', 'ci'] : ['npm', 'install', '--no-package-lock'],
         };
@@ -89,7 +88,7 @@ final readonly class PackageManager
         $command = match ($this->name) {
             self::YARN => $modernYarn
                 ? ['env', 'YARN_ENABLE_SCRIPTS=' . ($workspace->build->allowLifecycleScripts ? 'true' : 'false'), 'yarn', 'up']
-                : ['yarn', 'upgrade', '--mutex', self::YARN_MUTEX],
+                : ['yarn', 'upgrade', '--mutex', self::yarnMutex()],
             self::PNPM => ['pnpm', 'update'],
             default => ['npm', 'update', '--no-save'],
         };
@@ -133,6 +132,11 @@ final readonly class PackageManager
     private function splitArguments(string $arguments): array
     {
         return StringList::fromShellArguments($arguments);
+    }
+
+    private static function yarnMutex(): string
+    {
+        return 'file:' . PrivateTempDirectory::path() . '/yarn.lock';
     }
 
     private function hasNpmLock(PackageWorkspace $workspace): bool
