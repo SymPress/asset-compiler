@@ -4,6 +4,10 @@ All notable changes to this package will be documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions should follow semantic versioning.
 
+## 1.0.6 — 2026-11-16
+
+- Keep `isolated-cache` package-manager caches and the Yarn classic `--mutex` file in a private per-user directory (`sympress-asset-compiler-<uid>`, mode `0700`) below the system temp directory instead of predictable shared `/tmp` paths. Symlinked or foreign-owned directories are refused.
+
 ## 1.0.5 — 2026-11-06
 
 - Require Symfony Filesystem and Serializer 8.1.11 or later to include the November 4 security fixes.
