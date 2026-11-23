@@ -180,9 +180,14 @@ final readonly class AssetHasher
                 ->files()
                 ->ignoreUnreadableDirs()
                 ->ignoreVCS(true)
-                ->exclude(['node_modules', 'vendor', 'assets', 'build', 'coverage', 'dist', 'public', 'var'])
+                ->exclude(['node_modules', 'vendor'])
                 ->in($absolute)
                 ->sortByName();
+
+            // Build output directories are skipped only at the package root, never inside configured source directories.
+            if (realpath($absolute) === realpath($workspace->path)) {
+                $finder->notPath('#^(assets|build|coverage|dist|public|var)/#');
+            }
 
             foreach ($finder as $file) {
                 $path = $file->getRealPath();

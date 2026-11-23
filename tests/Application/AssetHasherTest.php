@@ -91,6 +91,36 @@ final class AssetHasherTest extends TestCase
         self::assertNotSame($before, $hasher->hash($workspace));
     }
 
+    public function testNestedOutputLikeDirectoriesInsideSourcePathsInvalidateHash(): void
+    {
+        foreach ([[], ['resources', 'src']] as $sourcePaths) {
+            $workspace = $this->workspace(sourcePaths: $sourcePaths);
+            mkdir($workspace->path . '/resources/assets/js', 0777, true);
+            mkdir($workspace->path . '/src/build', 0777, true);
+            $hasher = new AssetHasher(new BufferIO());
+
+            foreach (['resources/assets/js/app.js', 'src/build/x.ts'] as $file) {
+                $before = $hasher->hash($workspace);
+                file_put_contents($workspace->path . '/' . $file, 'changed');
+                self::assertNotSame($before, $hasher->hash($workspace), $file);
+            }
+
+            new Filesystem()->remove($workspace->path);
+        }
+    }
+
+    public function testRootSourcePathStillIgnoresTopLevelBuildOutput(): void
+    {
+        $workspace = $this->workspace(sourcePaths: ['.']);
+        mkdir($workspace->path . '/dist');
+        $hasher = new AssetHasher(new BufferIO());
+        $before = $hasher->hash($workspace);
+
+        file_put_contents($workspace->path . '/dist/app.js', 'built');
+
+        self::assertSame($before, $hasher->hash($workspace));
+    }
+
     public function testHashReportsJsonEncodingErrors(): void
     {
         $recursive = [];
@@ -106,8 +136,11 @@ final class AssetHasherTest extends TestCase
         new AssetHasher(new BufferIO())->hash($workspace);
     }
 
-    /** @param list<PrecompiledAssetConfig> $precompiledAssets */
-    private function workspace(array $precompiledAssets = []): PackageWorkspace
+    /**
+     * @param list<PrecompiledAssetConfig> $precompiledAssets
+     * @param list<string> $sourcePaths
+     */
+    private function workspace(array $precompiledAssets = [], array $sourcePaths = []): PackageWorkspace
     {
         $this->workspacePath = sys_get_temp_dir() . '/sympress_asset_compiler_hasher_' . bin2hex(random_bytes(8));
         mkdir($this->workspacePath);
@@ -123,7 +156,7 @@ final class AssetHasherTest extends TestCase
                 packageManager: null,
                 packageManagerPreference: null,
                 env: [],
-                sourcePaths: [],
+                sourcePaths: $sourcePaths,
                 timeout: 120,
                 precompiledAssets: $precompiledAssets,
             ),
