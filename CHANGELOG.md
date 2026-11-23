@@ -4,6 +4,17 @@ All notable changes to this package will be documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions should follow semantic versioning.
 
+## 1.0.7 — 2026-11-23
+
+- Security: the `github-artifact` adapter only uses artifacts from workflow runs of the configured repository itself, never from forks, and, when the package has a Composer reference, only artifacts built for that exact commit. Without a match the compiler falls back to the local build.
+- Fix build hashes ignoring nested `assets`, `build`, `dist`, `public`, `var` and `coverage` directories inside source paths (e.g. `resources/assets/**`). Output directories are now skipped only at the package root. Hashes of affected packages change once, so they rebuild on the next run.
+- Enforce step `timeout` in the parallel process pool and report timed-out steps as failed tasks in both runners instead of aborting the run.
+- Try precompiled assets before requiring npm, yarn or pnpm, so archives restore in PHP-only environments. The package-manager error is still raised when a local build is needed.
+- Merge a `$mode` object directly inside `defaults` instead of replacing the whole `defaults` object.
+- Probe package-manager and Node.js versions in the package directory, so Corepack/`yarnPath` Yarn versions select the right install flags.
+- Skip the real lifecycle-hook toolchain test when Node.js or a package manager is unavailable instead of failing `composer qa` as risky.
+- Document the supported 1.0.x release line in `SECURITY.md`; let Dependabot update GitHub Actions pins.
+
 ## 1.0.6 — 2026-11-16
 
 - Keep `isolated-cache` package-manager caches and the Yarn classic `--mutex` file in a private per-user directory (`sympress-asset-compiler-<uid>`, mode `0700`) below the system temp directory instead of predictable shared `/tmp` paths. Symlinked or foreign-owned directories are refused.
