@@ -226,7 +226,7 @@ Supported adapters:
 | --- | --- |
 | `archive` or `zip` | Local file path or HTTPS ZIP URL. |
 | `github-release` or `gh-release-zip` | GitHub release asset matched by `source`; requires `config.repository`, optional `config.tag`. |
-| `github-artifact` or `gh-action-artifact` | GitHub Actions artifact matched by `source`; requires `config.repository`. |
+| `github-artifact` or `gh-action-artifact` | Newest live GitHub Actions artifact matched by `source`; requires `config.repository`. Only artifacts from workflow runs of that repository itself (not forks) and, when the package has a known Composer reference, for that exact commit (`workflow_run.head_sha`) are used. |
 
 Supported placeholders in `source`, `target`, `checksum`, and GitHub `tag` are `${name}`, `${vendor}`, `${package}`, `${version}`, `${ref}`, `${reference}`, and `${stability}`.
 
