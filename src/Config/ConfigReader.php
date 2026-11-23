@@ -82,7 +82,8 @@ final readonly class ConfigReader
                 ?? $this->value($data, 'package-manager'),
                 'root package-manager',
             ),
-            defaults: $this->array($this->value($data, 'defaults')),
+            // Merge a `$mode` object inside `defaults` like any config object instead of replacing the whole object.
+            defaults: $this->modes->root(is_array($data['defaults'] ?? null) ? self::stringKeyedArray($data['defaults']) : []),
             packages: $this->array($this->value($data, 'packages')),
             packageTypes: $this->stringList(
                 $this->value($data, 'package-types'),
