@@ -72,6 +72,34 @@ final class ConfigReaderTest extends TestCase
         self::assertSame(['wordpress-plugin', 'wordpress-theme', 'wordpress-muplugin'], $config->packageTypes);
     }
 
+    public function testDefaultsModeObjectIsMergedIntoDefaults(): void
+    {
+        $rootPackage = new RootPackage('acme/root', 'dev-main', 'dev-main');
+        $rootPackage->setExtra([
+            RootConfig::EXTRA_KEY => [
+                'defaults' => [
+                    'dependencies' => 'none',
+                    'timeout'      => 120,
+                    'script'       => 'build',
+                    '$mode'        => ['production' => ['script' => 'build:prod']],
+                ],
+            ],
+        ]);
+        $reader = new ConfigReader('production', true);
+        $build = $reader->buildConfig(
+            new Package('acme/package', 'dev-main', 'dev-main'),
+            $reader->rootConfig($rootPackage, '/project'),
+            ['scripts' => ['build' => 'webpack', 'build:prod' => 'webpack --mode production']],
+            null,
+            false,
+        );
+
+        self::assertNotNull($build);
+        self::assertSame(['build:prod'], $build->scripts);
+        self::assertSame(DependencyMode::None, $build->dependencyMode);
+        self::assertSame(120, $build->timeout);
+    }
+
     public function testRootConfigParsesGroupedExecutionAndCacheCleanup(): void
     {
         $package = new RootPackage('acme/root', '1.0.0.0', '1.0.0');
