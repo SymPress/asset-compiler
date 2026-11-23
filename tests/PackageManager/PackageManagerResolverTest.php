@@ -104,6 +104,25 @@ final class PackageManagerResolverTest extends TestCase
         self::assertSame('package config', $resolution->reason);
     }
 
+    public function testVersionsAreProbedInThePackageDirectory(): void
+    {
+        $workspace = $this->workspace(packageJson: ['packageManager' => 'yarn@4.5.0']);
+        $directories = [];
+        $resolver = new PackageManagerResolver(
+            static fn (): bool => true,
+            static function (string $name, ?string $cwd = null) use (&$directories): string {
+                $directories[] = $cwd;
+
+                return $name . '-version';
+            },
+        );
+
+        $resolver->resolve($workspace);
+
+        self::assertNotSame([], $directories);
+        self::assertSame([$workspace->path], array_values(array_unique($directories)));
+    }
+
     private function resolver(): PackageManagerResolver
     {
         return new PackageManagerResolver(
