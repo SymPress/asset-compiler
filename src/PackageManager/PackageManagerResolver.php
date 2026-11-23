@@ -22,7 +22,10 @@ final class PackageManagerResolver
     /** @var array<string, bool> */
     private array $available = [];
 
-    /** @param callable(string): bool|null $availability */
+    /**
+     * @param callable(string): bool|null $availability
+     * @param callable(string, string): ?string|null $versionResolver receives the executable and the package path
+     */
     public function __construct(?callable $availability = null, ?callable $versionResolver = null)
     {
         $this->executables = new ExecutableFinder();
@@ -45,11 +48,13 @@ final class PackageManagerResolver
             $seen[$name] = true;
 
             if ($this->isAvailable($name)) {
+                $version = $this->version($name, $workspace->path);
+
                 return new PackageManagerResolution(
-                    new PackageManager($name, $this->version($name)),
+                    new PackageManager($name, $version),
                     $reason,
-                    $this->version($name),
-                    $this->version('node'),
+                    $version,
+                    $this->version('node', $workspace->path),
                 );
             }
         }
@@ -130,10 +135,11 @@ final class PackageManagerResolver
         return $this->available[$name];
     }
 
-    private function version(string $executable): ?string
+    /** Probes in the package directory: Corepack and Yarn `yarnPath` pick the version per directory. */
+    private function version(string $executable, string $cwd): ?string
     {
         if ($this->versionResolver !== null) {
-            $version = ($this->versionResolver)($executable);
+            $version = ($this->versionResolver)($executable, $cwd);
 
             return is_string($version) && trim($version) !== '' ? trim($version) : null;
         }
@@ -142,7 +148,7 @@ final class PackageManagerResolver
             return null;
         }
 
-        $process = new Process([$executable, '--version'], null, BuildEnvironment::process([]), null, 10);
+        $process = new Process([$executable, '--version'], $cwd, BuildEnvironment::process([]), null, 10);
         $process->run();
 
         if (!$process->isSuccessful()) {
