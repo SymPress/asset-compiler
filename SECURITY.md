@@ -2,11 +2,12 @@
 
 ## Supported Versions
 
-Security support follows the actively maintained release line of this package.
+Security fixes ship as patch releases of the latest 1.0.x release. Update to the newest 1.0.x version to receive them.
 
 | Version | Supported |
 | --- | --- |
-| Unreleased / development | Yes |
+| 1.0.x (latest patch release) | Yes |
+| Older 1.0.x patch releases | No, update to the latest 1.0.x |
 
 ## Reporting a Vulnerability
 
