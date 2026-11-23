@@ -47,23 +47,52 @@ final readonly class GitHubAssetLocator
             sprintf('https://api.github.com/repos/%s/actions/artifacts?per_page=100&name=%s', $repository, rawurlencode($name)),
             DownloadOptions::githubApi($this->apiHeaders($config)),
         );
-        $artifactList = $artifacts['artifacts'] ?? [];
+        $url = $this->artifactDownloadUrl($artifacts, $workspace);
+
+        if ($url === null) {
+            throw new RuntimeException(sprintf('GitHub artifact %s for commit %s was not found in %s.', $name, $workspace->reference ?: '(any)', $repository));
+        }
+
+        return $url;
+    }
+
+    /**
+     * Picks the newest live artifact built in the repository itself (never a fork) for the workspace commit.
+     *
+     * @param array<string, mixed> $response GitHub "list artifacts" API response
+     * @internal
+     */
+    public function artifactDownloadUrl(array $response, PackageWorkspace $workspace): ?string
+    {
+        $artifactList = $response['artifacts'] ?? [];
 
         if (!is_iterable($artifactList)) {
-            $artifactList = [];
+            return null;
         }
 
         foreach ($artifactList as $artifact) {
+            $run = is_array($artifact) ? ($artifact['workflow_run'] ?? null) : null;
+
             if (
-                is_array($artifact)
-                && ($artifact['expired'] ?? true) === false
-                && is_string($artifact['archive_download_url'] ?? null)
+                !is_array($artifact)
+                || !is_array($run)
+                || ($artifact['expired'] ?? true) !== false
+                || !is_string($artifact['archive_download_url'] ?? null)
+                || !is_int($run['repository_id'] ?? null)
+                || ($run['head_repository_id'] ?? null) !== $run['repository_id']
+                || !is_string($run['head_sha'] ?? null)
             ) {
-                return $artifact['archive_download_url'];
+                continue;
             }
+
+            if ($workspace->reference !== '' && strtolower($run['head_sha']) !== strtolower($workspace->reference)) {
+                continue;
+            }
+
+            return $artifact['archive_download_url'];
         }
 
-        throw new RuntimeException(sprintf('GitHub artifact %s was not found in %s.', $name, $repository));
+        return null;
     }
 
     public function archiveOptions(PrecompiledAssetConfig $config): DownloadOptions
