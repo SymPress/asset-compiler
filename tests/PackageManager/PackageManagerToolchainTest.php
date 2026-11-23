@@ -80,6 +80,10 @@ final class PackageManagerToolchainTest extends TestCase
     public function testFrozenInstallsDenyRealLifecycleHooks(): void
     {
         $finder = new ExecutableFinder();
+        if (!is_string($finder->find('node'))) {
+            self::markTestSkipped('Install Node.js with npm, yarn, or pnpm to run the real lifecycle-hook probe.');
+        }
+        $tested = [];
         foreach ([PackageManager::NPM, PackageManager::YARN, PackageManager::PNPM] as $name) {
             if (!is_string($finder->find($name))) {
                 continue;
@@ -106,7 +110,14 @@ final class PackageManagerToolchainTest extends TestCase
             self::assertFileDoesNotExist($workspace->path . '/lifecycle-secret');
             self::assertFileExists($workspace->path . '/built');
             (new Filesystem())->remove($workspace->path);
+            $tested[] = $name;
         }
+
+        if ($tested !== []) {
+            return;
+        }
+
+        self::markTestSkipped('Install npm, yarn, or pnpm to run the real lifecycle-hook probe.');
     }
 
     private function workspace(): PackageWorkspace
