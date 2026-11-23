@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SymPress\AssetCompiler\Application;
 
 use Composer\IO\IOInterface;
+use RuntimeException;
 use SymPress\AssetCompiler\Config\DependencyMode;
 use SymPress\AssetCompiler\Config\RootConfig;
 use SymPress\AssetCompiler\Discovery\PackageDiscovery;
@@ -89,6 +90,9 @@ final readonly class AssetCompiler
                 ++$precompiled;
                 continue;
             }
+
+            // A resolver failure deferred for precompiled assets is raised here, once a local build is needed.
+            $manager ??= $this->needsPackageManager($workspace) ? $this->packageManagers->resolve($workspace) : null;
 
             if (!$manager instanceof PackageManagerResolution) {
                 ++$skipped;
@@ -287,11 +291,25 @@ final readonly class AssetCompiler
 
     private function managerFor(PackageWorkspace $workspace): ?PackageManagerResolution
     {
-        if ($workspace->build->scripts === [] && $workspace->build->dependencyMode === DependencyMode::None) {
+        if (!$this->needsPackageManager($workspace)) {
             return null;
         }
 
-        return $this->packageManagers->resolve($workspace);
+        try {
+            return $this->packageManagers->resolve($workspace);
+        } catch (RuntimeException $exception) {
+            // Precompiled assets can be restored without Node.js or a package manager.
+            if ($workspace->build->precompiledAssets === []) {
+                throw $exception;
+            }
+
+            return null;
+        }
+    }
+
+    private function needsPackageManager(PackageWorkspace $workspace): bool
+    {
+        return $workspace->build->scripts !== [] || $workspace->build->dependencyMode !== DependencyMode::None;
     }
 
     private function explainWorkspace(PackageWorkspace $workspace, ?PackageManagerResolution $manager, LockStatus $lock): void
