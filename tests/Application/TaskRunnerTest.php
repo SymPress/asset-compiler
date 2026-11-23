@@ -151,6 +151,25 @@ final class TaskRunnerTest extends TestCase
         }
     }
 
+    public function testTimedOutStepsFailInSequentialAndPoolRuns(): void
+    {
+        $workspace = $this->workspace();
+        foreach ([1, 2] as $tasks) {
+            $io = new BufferIO();
+            $step = new BuildStep('slow build', [PHP_BINARY, '-r', 'sleep(5);'], $workspace->path, 1);
+            $started = microtime(true);
+            $result = new TaskRunner($io)->run(
+                array_fill(0, $tasks, new BuildTask($workspace, 'hash', [$step])),
+                $this->rootConfig(false, stopOnFailure: false),
+            );
+
+            self::assertSame($tasks, $result->failed);
+            self::assertSame([], $result->successfulWorkspaces);
+            self::assertLessThan(4.0, microtime(true) - $started);
+            self::assertStringContainsString('timed out', $io->getOutput());
+        }
+    }
+
     private function workspace(bool $isolatedCache = false): PackageWorkspace
     {
         $this->workspacePath = sys_get_temp_dir() . '/sympress_asset_compiler_runner_' . bin2hex(random_bytes(8));
@@ -169,13 +188,14 @@ final class TaskRunnerTest extends TestCase
         bool $wipeNodeModules,
         bool $clearPackageManagerCache = false,
         string $executionStrategy = RootConfig::EXECUTION_STRATEGY_STAGED,
+        bool $stopOnFailure = true,
     ): RootConfig {
 
         return new RootConfig(
             rootPath: '/project',
             autoRun: true,
             autoDiscover: true,
-            stopOnFailure: true,
+            stopOnFailure: $stopOnFailure,
             maxProcesses: 4,
             processPoll: 10000,
             isolatedCache: false,

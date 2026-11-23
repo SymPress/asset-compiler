@@ -11,6 +11,7 @@ use SymPress\AssetCompiler\Discovery\PackageWorkspace;
 use SymPress\AssetCompiler\Support\BuildEnvironment;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Process\Exception\ProcessSignaledException;
+use Symfony\Component\Process\Exception\ProcessTimedOutException;
 use Symfony\Component\Process\Process;
 
 final readonly class TaskRunner
@@ -168,6 +169,10 @@ final readonly class TaskRunner
             $this->io->writeError(sprintf('Asset command interrupted for %s.', $packageName));
 
             return false;
+        } catch (ProcessTimedOutException) {
+            $this->io->writeError(sprintf('<error>Asset command timed out for %s:</error> %s', $packageName, $step->displayCommand()));
+
+            return false;
         }
 
         if (!$process->isSuccessful()) {
@@ -217,7 +222,17 @@ final readonly class TaskRunner
             }
 
             foreach ($running as $id => $task) {
-                if (!$task->process instanceof Process || $task->process->isRunning()) {
+                if (!$task->process instanceof Process) {
+                    continue;
+                }
+
+                try {
+                    $task->process->checkTimeout();
+                } catch (ProcessTimedOutException) {
+                    $this->io->writeError(sprintf('<error>Asset command timed out for %s.</error>', $task->task->workspace->name));
+                }
+
+                if ($task->process->isRunning()) {
                     continue;
                 }
 
